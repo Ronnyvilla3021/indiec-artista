@@ -11,9 +11,11 @@ import {
 } from "react-icons/fi";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
-import * as XLSX from "xlsx"; // Importar la librerí a xlsx
+import * as XLSX from "xlsx"; // Importar la librería xlsx para exportar a Excel
+import xss from "xss"; // Importar xsser para prevenir XSS
 
 const Album = () => {
+  // Estado para almacenar la lista de álbumes
   const [albums, setAlbums] = useState([
     {
       foto: null,
@@ -33,9 +35,12 @@ const Album = () => {
     },
   ]);
 
+  // Estados para controlar la apertura y cierre de los modales
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalVer, setModalVer] = useState(false);
+
+  // Estado para almacenar los datos del formulario
   const [formData, setFormData] = useState({
     foto: null,
     titulo: "",
@@ -43,11 +48,20 @@ const Album = () => {
     año: "",
     genero: "",
   });
-  const [currentAlbum, setCurrentAlbum] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [errors, setErrors] = useState({});
-  const [sortOrder, setSortOrder] = useState("asc"); // Estado para el orden de los años
 
+  // Estado para almacenar el índice del álbum actualmente seleccionado
+  const [currentAlbum, setCurrentAlbum] = useState(null);
+
+  // Estado para almacenar el término de búsqueda
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Estado para almacenar errores de validación del formulario
+  const [errors, setErrors] = useState({});
+
+  // Estado para controlar el orden de los años (ascendente o descendente)
+  const [sortOrder, setSortOrder] = useState("asc");
+
+  // Lista de géneros musicales
   const generos = [
     "Rock",
     "Pop",
@@ -59,6 +73,7 @@ const Album = () => {
     "Metal",
   ];
 
+  // Función para abrir el modal de creación
   const openModalCrear = () => {
     setFormData({
       foto: null,
@@ -70,31 +85,42 @@ const Album = () => {
     setErrors({});
     setModalCrear(true);
   };
+
+  // Función para cerrar el modal de creación
   const closeModalCrear = () => setModalCrear(false);
 
+  // Función para abrir el modal de edición
   const openModalEditar = (index) => {
     setCurrentAlbum(index);
     setFormData(albums[index]);
     setErrors({});
     setModalEditar(true);
   };
+
+  // Función para cerrar el modal de edición
   const closeModalEditar = () => setModalEditar(false);
 
+  // Función para abrir el modal de visualización
   const openModalVer = (index) => {
     setCurrentAlbum(index);
     setModalVer(true);
   };
+
+  // Función para cerrar el modal de visualización
   const closeModalVer = () => setModalVer(false);
 
+  // Función para manejar cambios en los inputs del formulario
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
     if (name === "foto") {
       setFormData({ ...formData, foto: files[0] });
     } else {
-      setFormData({ ...formData, [name]: value });
+      // Sanitizar el valor del input usando xsser
+      setFormData({ ...formData, [name]: xss(value) });
     }
   };
 
+  // Función para validar el formulario
   const validateForm = () => {
     const newErrors = {};
     if (!formData.titulo) newErrors.titulo = "El título es obligatorio.";
@@ -105,6 +131,7 @@ const Album = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Función para agregar un nuevo álbum
   const handleAddAlbum = () => {
     if (!validateForm()) return;
     setAlbums([...albums, { ...formData, activo: true }]);
@@ -116,6 +143,7 @@ const Album = () => {
     closeModalCrear();
   };
 
+  // Función para actualizar un álbum existente
   const handleUpdateAlbum = () => {
     if (!validateForm()) return;
     const updatedAlbums = [...albums];
@@ -129,6 +157,7 @@ const Album = () => {
     closeModalEditar();
   };
 
+  // Función para desactivar un álbum
   const handleDeleteAlbum = (index) => {
     const updatedAlbums = [...albums];
     updatedAlbums[index].activo = false;
@@ -140,6 +169,7 @@ const Album = () => {
     });
   };
 
+  // Función para restaurar un álbum desactivado
   const handleRestoreAlbum = (index) => {
     const updatedAlbums = [...albums];
     updatedAlbums[index].activo = true;
@@ -151,14 +181,17 @@ const Album = () => {
     });
   };
 
+  // Función para manejar cambios en el campo de búsqueda
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
+    setSearchTerm(xss(e.target.value)); // Sanitizar el término de búsqueda
   };
 
+  // Función para ordenar los álbumes por año
   const handleSortByYear = () => {
     setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"));
   };
 
+  // Función para exportar los álbumes a un archivo Excel
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredAlbums);
     const workbook = XLSX.utils.book_new();
@@ -166,6 +199,7 @@ const Album = () => {
     XLSX.writeFile(workbook, "albumes.xlsx");
   };
 
+  // Filtrar y ordenar los álbumes según el término de búsqueda y el orden de los años
   const filteredAlbums = albums
     .filter((album) =>
       album.titulo.toLowerCase().includes(searchTerm.toLowerCase())

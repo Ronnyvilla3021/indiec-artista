@@ -11,9 +11,11 @@ import {
 } from "react-icons/fi";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx"; // Importar la librería xlsx para exportar a Excel
+import xss from "xss"; // Importar xsser para prevenir XSS
 
 const Eventos = () => {
+  // Estado para almacenar la lista de eventos
   const [eventos, setEventos] = useState([
     {
       foto: null,
@@ -41,9 +43,12 @@ const Eventos = () => {
     },
   ]);
 
+  // Estados para controlar los modales
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalVer, setModalVer] = useState(false);
+
+  // Estado para almacenar los datos del formulario
   const [formData, setFormData] = useState({
     foto: null,
     nombreEvento: "",
@@ -55,19 +60,30 @@ const Eventos = () => {
     capacidad: "",
     artistas: "",
   });
+
+  // Estado para almacenar el índice del evento actualmente seleccionado
   const [currentEvento, setCurrentEvento] = useState(null);
+
+  // Estado para almacenar el término de búsqueda
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Estado para controlar el orden de las fechas (ascendente o descendente)
   const [sortOrder, setSortOrder] = useState("asc");
+
+  // Estado para almacenar errores de validación del formulario
   const [errors, setErrors] = useState({});
 
+  // Función para manejar cambios en el campo de búsqueda
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
+    setSearchTerm(xss(e.target.value)); // Sanitizar el término de búsqueda
   };
 
+  // Función para ordenar los eventos por fecha
   const handleSortByDate = () => {
     setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"));
   };
 
+  // Función para exportar los eventos a un archivo Excel
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredEventos);
     const workbook = XLSX.utils.book_new();
@@ -75,6 +91,7 @@ const Eventos = () => {
     XLSX.writeFile(workbook, "eventos.xlsx");
   };
 
+  // Filtrar y ordenar los eventos según el término de búsqueda y el orden de las fechas
   const filteredEventos = eventos
     .filter((evento) =>
       evento.nombreEvento.toLowerCase().includes(searchTerm.toLowerCase())
@@ -85,6 +102,7 @@ const Eventos = () => {
         : new Date(b.fecha) - new Date(a.fecha);
     });
 
+  // Función para abrir el modal de creación
   const openModalCrear = () => {
     setFormData({
       foto: null,
@@ -101,8 +119,10 @@ const Eventos = () => {
     setModalCrear(true);
   };
 
+  // Función para cerrar el modal de creación
   const closeModalCrear = () => setModalCrear(false);
 
+  // Función para abrir el modal de edición
   const openModalEditar = (index) => {
     setCurrentEvento(index);
     setFormData(eventos[index]);
@@ -110,24 +130,30 @@ const Eventos = () => {
     setModalEditar(true);
   };
 
+  // Función para cerrar el modal de edición
   const closeModalEditar = () => setModalEditar(false);
 
+  // Función para abrir el modal de visualización
   const openModalVer = (index) => {
     setCurrentEvento(index);
     setModalVer(true);
   };
 
+  // Función para cerrar el modal de visualización
   const closeModalVer = () => setModalVer(false);
 
+  // Función para manejar cambios en los inputs del formulario
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
     if (name === "foto") {
       setFormData({ ...formData, foto: files[0] });
     } else {
-      setFormData({ ...formData, [name]: value });
+      // Sanitizar el valor del input usando xsser
+      setFormData({ ...formData, [name]: xss(value) });
     }
   };
 
+  // Función para validar el formulario
   const validateForm = () => {
     const newErrors = {};
     if (!formData.nombreEvento)
@@ -148,6 +174,7 @@ const Eventos = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Función para agregar un nuevo evento
   const handleAddEvento = () => {
     if (!validateForm()) return;
     setEventos([...eventos, { ...formData, estado: true }]);
@@ -159,6 +186,7 @@ const Eventos = () => {
     closeModalCrear();
   };
 
+  // Función para actualizar un evento existente
   const handleUpdateEvento = () => {
     if (!validateForm()) return;
     const updatedEventos = [...eventos];
@@ -172,6 +200,7 @@ const Eventos = () => {
     closeModalEditar();
   };
 
+  // Función para desactivar un evento
   const handleDeleteEvento = (index) => {
     const updatedEventos = [...eventos];
     updatedEventos[index].estado = false;
@@ -183,6 +212,7 @@ const Eventos = () => {
     });
   };
 
+  // Función para restaurar un evento desactivado
   const handleRestoreEvento = (index) => {
     const updatedEventos = [...eventos];
     updatedEventos[index].estado = true;
@@ -440,7 +470,7 @@ const Eventos = () => {
     </div>
   );
 };
-
+// ModalFormulario
 const ModalFormulario = ({ formData, onClose, onChange, onSave, errors }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -606,7 +636,7 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors }) => {
     </div>
   );
 };
-
+// modalVER
 const ModalVer = ({ data, onClose }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
