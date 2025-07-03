@@ -1,14 +1,14 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FaBars,
   FaTimes,
   FaHome,
   FaMusic,
   FaUsers,
-  FaUserAlt,
-  FaSignOutAlt,
-  FaBell,
   FaUserCircle,
+  FaSignOutAlt,
+  FaMicrophoneAlt,
+  FaBell,
 } from "react-icons/fa";
 import { BiSolidAlbum } from "react-icons/bi";
 import { GrUserManager } from "react-icons/gr";
@@ -16,41 +16,64 @@ import { GiConcentrationOrb } from "react-icons/gi";
 import { Player } from "@lottiefiles/react-lottie-player";
 import logoutAnimation from "../animation/Animation - 1737946669842.json";
 
-
-
-;
-
 const Navbar = () => {
-  const toggleNotification = () => {
-  setShowNotification(!showNotification);
-};
   const [isOpen, setIsOpen] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showLottie, setShowLottie] = useState(false);
-const notificationRef = useRef(null);
-const dropdownRef = useRef(null)
+
+  const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
+
+  // Close dropdown or notification when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setShowNotification(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
 
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
+    setShowNotification(false); // Close notification if dropdown is opened
+  };
+
+  const toggleNotification = () => {
+    setShowNotification(!showNotification);
+    setDropdownOpen(false); // Close dropdown if notification is opened
   };
 
   const handleLogout = () => {
-    setShowLottie(true); // Muestra la animación
+    setShowLottie(true); // Show the animation
     setTimeout(() => {
-      window.location.href = "/"; // Redirige después de la animación
-    }, 2000); // Ajusta el tiempo según la duración de la animación
+      window.location.href = "/"; // Redirect after the animation
+    }, 2000); // Adjust time based on animation duration
   };
- const menuItemClass =
+
+  // Common styles for menu items
+  const menuItemClass =
     "flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ease-in-out cursor-pointer group";
-  const menuItemHoverClass = "hover:bg-gradient-to-r hover:from-green-500 hover:to-emerald-600 hover:shadow-lg transform hover:scale-105"; // Enhanced hover effect
+  const menuItemHoverClass = "hover:bg-gradient-to-r hover:from-green-500 hover:to-emerald-600 hover:shadow-lg transform hover:scale-105";
   const menuItemIconClass =
-    "transition-colors duration-300 group-hover:text-gray-900 text-green-400"; // Green icon color by default
+    "transition-colors duration-300 group-hover:text-gray-900 text-green-400";
   const menuItemTextClass =
-    "transition-colors duration-300 group-hover:text-gray-900 font-medium text-gray-200"; // Lighter text by default
+    "transition-colors duration-300 group-hover:text-gray-900 font-medium text-gray-200";
 
   return (
     <div className="flex">
@@ -59,56 +82,57 @@ const dropdownRef = useRef(null)
         className={`fixed top-0 left-0 h-full bg-gradient-to-b from-gray-900 to-black text-white w-64 transform ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } transition-transform duration-300 ease-in-out md:translate-x-0 md:w-72 shadow-2xl z-40`}
-      
       >
-        <div className="p-4">
+        <div className="p-6">
+          {/* Logo */}
           <div className="text-4xl font-extrabold text-green-400 mb-10 flex items-center justify-center border-b border-gray-700 pb-5">
-            <FaMusic className="mr-3 text-green-500 animate-pulse" />{" "}
-            {/* Added pulse animation */}
+            <FaMusic className="mr-3 text-green-500 animate-pulse" />
             <span className="tracking-wide">𝕀ℕ𝔻𝕀𝔼ℂ</span>
           </div>
+
           {/* Menu items */}
           <ul className="space-y-4">
             <li className={`${menuItemClass} ${menuItemHoverClass}`}>
               <a href="/dashboard" className="flex items-center gap-3 w-full">
-                <FaHome size={22} className={menuItemIconClass} />{" "}
+                <FaHome size={22} className={menuItemIconClass} />
                 <span className={menuItemTextClass}>Dashboard</span>
               </a>
             </li>
-              <li className={`${menuItemClass} ${menuItemHoverClass}`}>
+            <li className={`${menuItemClass} ${menuItemHoverClass}`}>
               <a href="/musica" className="flex items-center gap-3 w-full">
-                <FaMusic size={22} className={menuItemIconClass} />{" "}
-                <span className={menuItemTextClass}>Musica</span>
+                <FaMusic size={22} className={menuItemIconClass} />
+                <span className={menuItemTextClass}>Música</span>
               </a>
             </li>
             <li className={`${menuItemClass} ${menuItemHoverClass}`}>
               <a href="/grupomusical" className="flex items-center gap-3 w-full">
-                <FaUsers size={22} className={menuItemIconClass} />{" "}
+                <FaUsers size={22} className={menuItemIconClass} />
                 <span className={menuItemTextClass}>Grupo Musical</span>
               </a>
             </li>
             <li className={`${menuItemClass} ${menuItemHoverClass}`}>
               <a href="/album" className="flex items-center gap-3 w-full">
-                <BiSolidAlbum size={22} className={menuItemIconClass} />{" "}
+                <BiSolidAlbum size={22} className={menuItemIconClass} />
                 <span className={menuItemTextClass}>Álbum</span>
               </a>
             </li>
             <li className={`${menuItemClass} ${menuItemHoverClass}`}>
               <a href="/manager" className="flex items-center gap-3 w-full">
-                <GrUserManager size={22} className={menuItemIconClass} />{" "}
+                <GrUserManager size={22} className={menuItemIconClass} />
                 <span className={menuItemTextClass}>Manager</span>
               </a>
             </li>
             <li className={`${menuItemClass} ${menuItemHoverClass}`}>
               <a href="/eventos" className="flex items-center gap-3 w-full">
-                <FaUsers size={22} className={menuItemIconClass} />{" "}
+                <GiConcentrationOrb size={22} className={menuItemIconClass} />
                 <span className={menuItemTextClass}>Evento</span>
               </a>
             </li>
           </ul>
         </div>
       </nav>
-{/* Main content area (to push content when sidebar is open) */}
+
+      {/* Main content area (to push content when sidebar is open) */}
       <div className="flex-1 ml-0 md:ml-72 bg-gray-50">
         {/* Top Bar */}
         <div className="flex justify-between items-center bg-gradient-to-r from-gray-800 to-black text-white shadow-lg p-4 md:p-6 sticky top-0 z-30 border-b border-gray-700">
@@ -135,8 +159,7 @@ const dropdownRef = useRef(null)
                 <FaBell size={22} />
                 <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full transform translate-x-1/2 -translate-y-1/2">
                   3
-                </span>{" "}
-                {/* Notification badge */}
+                </span>
               </button>
               {showNotification && (
                 <div className="absolute right-0 mt-3 w-80 bg-white text-gray-800 rounded-lg shadow-xl p-5 text-sm animate-fade-in-down origin-top-right border border-gray-200">
@@ -152,7 +175,7 @@ const dropdownRef = useRef(null)
                           ¡Nueva canción subida!
                         </p>
                         <p className="text-gray-600 text-xs">
-                          "Summer Vibes" de DJ Beatmaster está disponible ahora.
+                          "Summer Vibes" ya está disponible.
                         </p>
                       </div>
                     </li>
@@ -163,7 +186,7 @@ const dropdownRef = useRef(null)
                           Nuevo seguidor
                         </p>
                         <p className="text-gray-600 text-xs">
-                          JuanPerez ha empezado a seguirte. ¡Explora su perfil!
+                          JuanPerez ha empezado a seguirte.
                         </p>
                       </div>
                     </li>
@@ -174,7 +197,7 @@ const dropdownRef = useRef(null)
                           Recordatorio de evento
                         </p>
                         <p className="text-gray-600 text-xs">
-                          Tu evento "Live Session" es mañana a las 8 PM.
+                          "Live Session" es mañana a las 8 PM.
                         </p>
                       </div>
                     </li>
@@ -197,7 +220,7 @@ const dropdownRef = useRef(null)
               >
                 <img
                   className="w-10 h-10 rounded-full border-2 border-green-400 object-cover transform group-hover:scale-110 transition-transform duration-300"
-                  src="/musicaa.png" // Use src for direct image path
+                  src="/musicaa.png"
                   alt="User Avatar"
                 />
                 <span className="hidden md:block text-gray-300 font-medium group-hover:text-white transition-colors duration-200">
@@ -206,8 +229,7 @@ const dropdownRef = useRef(null)
                 <FaUserCircle
                   size={24}
                   className="text-green-400 hidden md:block group-hover:text-green-300 transition-colors duration-200"
-                />{" "}
-                {/* Profile icon */}
+                />
               </div>
 
               {/* Dropdown Menu */}
@@ -248,15 +270,19 @@ const dropdownRef = useRef(null)
           </div>
         </div>
 
-
-        {/* Lottie Animation */}
+        {/* Lottie Animation for Logout */}
         {showLottie && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50">
             <Player
               autoplay
               loop={false}
-              src={logoutAnimation} // Usamos el archivo importado
-              style={{ height: "300px", width: "300px" }}
+              src={logoutAnimation}
+              style={{ height: "350px", width: "350px" }}
+              onEvent={(event) => {
+                if (event === "complete") {
+                  // Optionally redirect immediately after animation finishes
+                }
+              }}
             />
           </div>
         )}
