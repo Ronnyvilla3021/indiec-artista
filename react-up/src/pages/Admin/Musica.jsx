@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion"; // Added AnimatePresence
 import {
   FiEye,
   FiEdit,
@@ -8,12 +8,13 @@ import {
   FiRefreshCcw,
   FiFilter,
   FiDownload,
+  FiPlusCircle,
+  FiSearch // Added missing FiSearch
 } from "react-icons/fi";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 
-// Componente principal
 const Musica = () => {
   const [canciones, setCanciones] = useState([
     {
@@ -103,7 +104,7 @@ const Musica = () => {
     } else {
       setFormData({ ...formData, [name]: value });
     }
-    validateField(name, value); // Validar el campo en tiempo real
+    validateField(name, value);
   };
 
   const validateField = (name, value) => {
@@ -119,7 +120,7 @@ const Musica = () => {
     } else if (name === "genero" && !value) {
       newErrors.genero = "El género es obligatorio.";
     } else {
-      delete newErrors[name]; // Eliminar el error si el campo es válido
+      delete newErrors[name];
     }
     setErrors(newErrors);
   };
@@ -142,6 +143,8 @@ const Musica = () => {
       icon: "success",
       title: "Canción agregada",
       text: `La canción "${formData.titulo}" fue agregada exitosamente.`,
+      background: "#f1f8f9",
+      confirmButtonColor: "#0aa5a9",
     });
     closeModalCrear();
   };
@@ -155,6 +158,8 @@ const Musica = () => {
       icon: "success",
       title: "Canción actualizada",
       text: `La canción "${formData.titulo}" fue actualizada exitosamente.`,
+      background: "#f1f8f9",
+      confirmButtonColor: "#0aa5a9",
     });
     closeModalEditar();
   };
@@ -167,6 +172,8 @@ const Musica = () => {
       icon: "error",
       title: "Canción desactivada",
       text: "La canción fue marcada como inactiva.",
+      background: "#f1f8f9",
+      confirmButtonColor: "#0aa5a9",
     });
   };
 
@@ -178,6 +185,8 @@ const Musica = () => {
       icon: "success",
       title: "Canción restaurada",
       text: "La canción fue restaurada y está activa nuevamente.",
+      background: "#f1f8f9",
+      confirmButtonColor: "#0aa5a9",
     });
   };
 
@@ -190,7 +199,16 @@ const Musica = () => {
   };
 
   const handleExportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredCanciones);
+    const worksheet = XLSX.utils.json_to_sheet(
+      canciones.map((cancion) => ({
+        Título: cancion.titulo,
+        Álbum: cancion.album,
+        Duración: cancion.duracion,
+        Año: cancion.año,
+        Género: cancion.genero,
+        Estado: cancion.estado,
+      }))
+    );
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Canciones");
     XLSX.writeFile(workbook, "canciones.xlsx");
@@ -205,209 +223,189 @@ const Musica = () => {
     });
 
   return (
-    <div className="p-8 min-h-screen bg-cover bg-center bg-[url('/fondo.gif')]">
-      {/* Encabezado y botón de agregar */}
-      <div
-        className="flex flex-col sm:flex-row md:flex-row items-center justify-between p-4 md:ml-72 text-white rounded-lg bg-cover bg-center"
-        style={{ backgroundImage: "url('/img/dc.jpg')", borderRadius: "20px" }}
-      >
-        <p
-          className="text-center sm:text-left text-2xl sm:text-4xl md:text-5xl lg:text-6xl"
-          style={{ fontSize: "clamp(25px, 8vw, 60px)", margin: 0 }}
-        >
-          Canción
-        </p>
-        <div className="mt-4 sm:mt-0">
-          <button
-            onClick={openModalCrear}
-            className="bg-[#0aa5a9] text-white px-6 py-3 rounded-lg transition-transform duration-300 hover:bg-[#067b80] hover:scale-105"
-            style={{ fontSize: "18px" }}
-          >
-            Agregar Canción
-          </button>
+
+<div style={{
+  background: "linear-gradient(135deg, rgba(241,248,249,0.9) 0%, rgba(214,234,236,0.9) 100%)",
+  minHeight: "100vh",
+  padding: "2rem 4rem", // Aumenta padding horizontal
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundAttachment: "fixed",
+}}>
+  {/* Contenedor que centra todo el contenido */}
+  <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-lg w-full">
+    {/* Hero Section */}
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-r from-teal-600 to-cyan-700 rounded-3xl p-6 md:p-8 mb-8 text-white shadow-xl"
+    >
+      <div className="flex flex-col md:flex-row justify-between items-center">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold mb-2">Gestión de Música</h1>
+          <p className="text-lg opacity-90">Administra tu colección musical</p>
         </div>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={openModalCrear}
+          className="mt-4 md:mt-0 bg-white text-teal-700 px-6 py-3 rounded-full flex items-center gap-2 font-semibold shadow-md hover:shadow-lg transition-all"
+        >
+          <FiPlusCircle size={20} />
+          Agregar Canción
+        </motion.button>
       </div>
+    </motion.div>
 
-      {/* Migajas de pan */}
-      <div
-        className="md:ml-72 p-4 mx-auto bg-blue-100 rounded-lg shadow-lg"
-        style={{
-          backgroundColor: "#f1f8f9",
-          borderRadius: "20px",
-          marginTop: "20px",
-          marginBottom: "20px",
-          height: "auto",
-          padding: "10px",
-        }}
-      >
-        <nav aria-label="breadcrumb">
-          <ol className="flex flex-wrap gap-2 list-none p-0 m-0 justify-center items-center">
-            <li className="text-sm sm:text-base md:text-lg lg:text-lg text-center py-2">
-              <Link
-                to="/dashboard"
-                className="text-[#0aa5a9] px-4 py-2 rounded-lg transition duration-300 hover:bg-[#067b80] hover:text-white no-underline"
-              >
-                Inicio
-              </Link>
-            </li>
-            <li className="text-sm sm:text-base md:text-lg lg:text-lg text-center py-2">
-              <span className="text-[#0aa5a9] px-2">/</span>
-            </li>
-            <li className="text-sm sm:text-base md:text-lg lg:text-lg text-center py-2">
-              <span className="text-[#0aa5a9] px-4 py-2 rounded-lg transition duration-300 hover:bg-[#067b80] hover:text-white no-underline">
-                Canción
-              </span>
-            </li>
-          </ol>
-        </nav>
-      </div>
+    {/* Breadcrumb */}
+    <div className="bg-white rounded-xl p-4 mb-6 shadow-sm">
+      <nav className="flex items-center space-x-2 text-sm">
+        <Link to="/dashboard" className="text-cyan-600 hover:underline">
+          Inicio
+        </Link>
+        <span className="text-gray-400">/</span>
+        <span className="text-cyan-600 font-medium">Música</span>
+      </nav>
+    </div>
 
-      {/* Contenedor de búsqueda, filtro y exportar */}
-      <div
-        className="md:ml-72 p-4 mx-auto bg-gray-100 rounded-lg shadow-lg"
-        style={{
-          backgroundColor: "#f1f8f9",
-          borderRadius: "20px",
-          marginTop: "20px",
-          marginBottom: "20px",
-          height: "auto",
-          padding: "10px",
-        }}
-      >
-        <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-4">
-          <div className=" w-full sm:w-auto">
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl p-4 mb-6 shadow-sm">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-grow">
             <input
               type="text"
-              placeholder="Buscar Canción..."
+              placeholder="Buscar canción..."
               value={searchTerm}
               onChange={handleSearchChange}
-              className="border border-gray-300 p-2 rounded-lg w-full pl-10"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
+            <FiSearch className="absolute left-3 top-3 text-gray-400" />
           </div>
-          <button
-            onClick={handleSortByYear}
-            className="bg-blue-500 text-white py-2 px-6 rounded-lg hover:bg-blue-300 transition-colors duration-300 flex items-center gap-2"
-          >
-            <FiFilter />
-            {sortOrder === "asc" ? "Año Ascendente" : "Año Descendente"}
-          </button>
-          <button
-            onClick={handleExportToExcel}
-            className="bg-green-500 text-white py-2 px-6 rounded-lg hover:bg-green-300 transition-colors duration-300 flex items-center gap-2"
-          >
-            <FiDownload />
-            Exportar a Excel
-          </button>
+          <div className="flex gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSortByYear}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            >
+              <FiFilter />
+              {sortOrder === "asc" ? "Año ↑" : "Año ↓"}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleExportToExcel}
+              className="bg-green-500 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            >
+              <FiDownload />
+              Exportar
+            </motion.button>
+          </div>
         </div>
       </div>
 
-      {/* Tabla de canciones */}
-      <div
-        className="flex-1 ml-0 md:ml-72 p-4 rounded-lg overflow-auto"
-        style={{ backgroundColor: "rgba(241, 248, 249, 0.8)" }}
-      >
+      {/* Table */}
+      <div className="bg-white rounded-xl overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
-          <table
-            className="min-w-full table-auto rounded-lg shadow-md"
-            style={{ backgroundColor: "rgba(255, 255, 255, 0.8)" }}
-          >
-            <thead className="bg-gray-200">
+          <table className="w-full">
+            <thead className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white">
               <tr>
-                <th className="px-4 py-2">Foto</th>
-                <th className="px-4 py-2">Título</th>
-                <th className="px-4 py-2">Álbum</th>
-                <th className="px-4 py-2">Duración</th>
-                <th className="px-4 py-2">Año</th>
-                <th className="px-4 py-2">Género</th>
-                <th className="px-4 py-2">Estado</th>
-                <th className="px-4 py-2">Acciones</th>
+                <th className="px-6 py-3 text-left">Foto</th>
+                <th className="px-6 py-3 text-left">Título</th>
+                <th className="px-6 py-3 text-left">Álbum</th>
+                <th className="px-6 py-3 text-left">Duración</th>
+                <th className="px-6 py-3 text-left">Año</th>
+                <th className="px-6 py-3 text-left">Género</th>
+                <th className="px-6 py-3 text-left">Estado</th>
+                <th className="px-6 py-3 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filteredCanciones.map((cancion, index) => (
-                <motion.tr
-                  key={index}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className={`border-t ${
-                    cancion.estado === "Activo"
-                      ? "hover:bg-gray-100"
-                      : "bg-gray-300"
-                  }`}
-                >
-                  <td className="px-4 py-2">
-                    {cancion.foto ? (
-                      <img
-                        src={URL.createObjectURL(cancion.foto)}
-                        alt="Foto"
-                        className="w-12 h-12 object-cover rounded-md"
-                      />
-                    ) : (
-                      "Sin foto"
-                    )}
-                  </td>
-                  <td className="px-4 py-2">{cancion.titulo}</td>
-                  <td className="px-4 py-2">{cancion.album}</td>
-                  <td className="px-4 py-2">{cancion.duracion}</td>
-                  <td className="px-4 py-2">{cancion.año}</td>
-                  <td className="px-4 py-2">{cancion.genero}</td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-white ${
-                        cancion.estado === "Activo"
-                          ? "bg-green-500"
-                          : "bg-red-500"
+              <AnimatePresence>
+                {filteredCanciones.map((cancion, index) => (
+                  <motion.tr
+                    key={index}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className={`border-t border-gray-200 ${cancion.estado === "Inactivo" ? "bg-gray-50" : "hover:bg-cyan-50"
                       }`}
-                    >
-                      {cancion.estado}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 flex space-x-2">
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer"
-                      onClick={() => openModalVer(index)}
-                    >
-                      <FiEye className="text-white" size={20} />
-                    </motion.div>
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center cursor-pointer"
-                      onClick={() => openModalEditar(index)}
-                    >
-                      <FiEdit className="text-white" size={20} />
-                    </motion.div>
-                    {cancion.estado === "Activo" ? (
-                      <motion.div
+                  >
+                    <td className="px-6 py-4">
+                      {cancion.foto ? (
+                        <img
+                          src={URL.createObjectURL(cancion.foto)}
+                          alt="Cover"
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-xs">
+                          Sin foto
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 font-medium">{cancion.titulo}</td>
+                    <td className="px-6 py-4">{cancion.album}</td>
+                    <td className="px-6 py-4">{cancion.duracion}</td>
+                    <td className="px-6 py-4">{cancion.año}</td>
+                    <td className="px-6 py-4">{cancion.genero}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${cancion.estado === "Activo"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                          }`}
+                      >
+                        {cancion.estado}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 flex justify-center space-x-2">
+                      <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center cursor-pointer"
-                        onClick={() => handleDeleteCancion(index)}
+                        className="p-2 bg-blue-500 rounded-full text-white"
+                        onClick={() => openModalVer(index)}
                       >
-                        <FiTrash2 className="text-white" size={20} />
-                      </motion.div>
-                    ) : (
-                      <motion.div
+                        <FiEye size={16} />
+                      </motion.button>
+                      <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center cursor-pointer"
-                        onClick={() => handleRestoreCancion(index)}
+                        className="p-2 bg-yellow-500 rounded-full text-white"
+                        onClick={() => openModalEditar(index)}
                       >
-                        <FiRefreshCcw className="text-white" size={20} />
-                      </motion.div>
-                    )}
-                  </td>
-                </motion.tr>
-              ))}
+                        <FiEdit size={16} />
+                      </motion.button>
+                      {cancion.estado === "Activo" ? (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 bg-red-500 rounded-full text-white"
+                          onClick={() => handleDeleteCancion(index)}
+                        >
+                          <FiTrash2 size={16} />
+                        </motion.button>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 bg-green-500 rounded-full text-white"
+                          onClick={() => handleRestoreCancion(index)}
+                        >
+                          <FiRefreshCcw size={16} />
+                        </motion.button>
+                      )}
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* Modales */}
+      {/* Modals */}
+      <AnimatePresence>
         {modalCrear && (
           <ModalFormulario
             formData={formData}
@@ -419,7 +417,6 @@ const Musica = () => {
             isFormValid={isFormValid}
           />
         )}
-
         {modalEditar && (
           <ModalFormulario
             formData={formData}
@@ -431,19 +428,20 @@ const Musica = () => {
             isFormValid={isFormValid}
           />
         )}
-
         {modalVer && (
           <ModalVer
             cancion={canciones[currentCancion]}
             onClose={closeModalVer}
           />
         )}
-      </div>
+      </AnimatePresence>
     </div>
+    </div>
+
   );
 };
 
-// ModalFormulario
+// ModalFormulario Component
 const ModalFormulario = ({
   formData,
   onClose,
@@ -453,102 +451,71 @@ const ModalFormulario = ({
   errors,
   isFormValid,
 }) => (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-      <h2 className="text-xl font-bold mb-4">Formulario de Canción</h2>
-      <form>
-        <div className="mb-4 text-center">
-          <label className="block text-sm font-semibold text-gray-700 mb-2"></label>
-          <div>
-            <label
-              htmlFor="foto"
-              className="inline-block bg-[#067b80] text-white text-sm font-semibold px-4 py-2 rounded-md cursor-pointer hover:bg-[#056b6e] focus:ring-2 focus:ring-[#056b6e] focus:outline-none"
-            >
-              Subir Imagen
-            </label>
-            <input
-              id="foto"
-              type="file"
-              name="foto"
-              onChange={onChange}
-              className="hidden"
-            />
-          </div>
-        </div>
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+  >
+    <motion.div
+      initial={{ scale: 0.9 }}
+      animate={{ scale: 1 }}
+      className="bg-white rounded-xl p-6 w-full max-w-md"
+    >
+      <h2 className="text-2xl font-bold text-cyan-700 mb-4">Formulario de Canción</h2>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Título</label>
+      <div className="mb-4 text-center">
+        <label className="block mb-2 font-medium">Imagen de la canción</label>
+        <label
+          htmlFor="foto"
+          className="inline-block bg-cyan-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-cyan-700 transition"
+        >
+          Subir Imagen
           <input
-            type="text"
-            name="titulo"
-            value={formData.titulo}
+            id="foto"
+            type="file"
+            name="foto"
             onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
-              errors.titulo ? "border-red-500" : ""
-            }`}
+            className="hidden"
           />
-          {errors.titulo && (
-            <p className="text-red-500 text-sm mt-1">{errors.titulo}</p>
-          )}
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Álbum</label>
-          <input
-            type="text"
-            name="album"
-            value={formData.album}
-            onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
-              errors.album ? "border-red-500" : ""
-            }`}
-          />
-          {errors.album && (
-            <p className="text-red-500 text-sm mt-1">{errors.album}</p>
-          )}
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Duración</label>
-          <input
-            type="text"
-            name="duracion"
-            value={formData.duracion}
-            onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
-              errors.duracion ? "border-red-500" : ""
-            }`}
-          />
-          {errors.duracion && (
-            <p className="text-red-500 text-sm mt-1">{errors.duracion}</p>
-          )}
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Año</label>
-          <input
-            type="number"
-            name="año"
-            value={formData.año}
-            onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
-              errors.año ? "border-red-500" : ""
-            }`}
-          />
-          {errors.año && (
-            <p className="text-red-500 text-sm mt-1">{errors.año}</p>
-          )}
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Género</label>
+        </label>
+      </div>
+
+      <div className="space-y-4">
+        {[
+          { label: "Título", name: "titulo", type: "text" },
+          { label: "Álbum", name: "album", type: "text" },
+          { label: "Duración", name: "duracion", type: "text" },
+          { label: "Año", name: "año", type: "number" },
+        ].map((field) => (
+          <div key={field.name}>
+            <label className="block mb-1 font-medium">{field.label}</label>
+            <input
+              type={field.type}
+              name={field.name}
+              value={formData[field.name]}
+              onChange={onChange}
+              className={`w-full p-2 border rounded-lg ${errors[field.name] ? "border-red-500" : "border-gray-300"
+                }`}
+            />
+            {errors[field.name] && (
+              <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+            )}
+          </div>
+        ))}
+
+        <div>
+          <label className="block mb-1 font-medium">Género</label>
           <select
             name="genero"
             value={formData.genero}
             onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
-              errors.genero ? "border-red-500" : ""
-            }`}
+            className={`w-full p-2 border rounded-lg ${errors.genero ? "border-red-500" : "border-gray-300"
+              }`}
           >
             <option value="">Selecciona un género</option>
-            {generos.map((genero, index) => (
-              <option key={index} value={genero}>
+            {generos.map((genero) => (
+              <option key={genero} value={genero}>
                 {genero}
               </option>
             ))}
@@ -557,82 +524,99 @@ const ModalFormulario = ({
             <p className="text-red-500 text-sm mt-1">{errors.genero}</p>
           )}
         </div>
-        <div className="flex justify-end">
-          <button
-            onClick={onSave}
-            className={`bg-blue-500 text-white p-2 rounded-lg mr-2 ${
-              !isFormValid() ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            disabled={!isFormValid()}
-          >
-            Guardar
-          </button>
-          <button
-            onClick={onClose}
-            className="bg-red-400 text-white p-2 rounded-md"
-          >
-            Cerrar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-);
+      </div>
 
-// ModalVer
-const ModalVer = ({ cancion, onClose }) => (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-      <h2 className="text-xl font-bold mb-4">Ver Canción</h2>
-      <div className="mb-4">
-        <strong>Foto:</strong>
-        {cancion.foto ? (
-          <img
-            src={URL.createObjectURL(cancion.foto)}
-            alt="Foto"
-            className="w-12 h-12 object-cover rounded-md"
-          />
-        ) : (
-          "Sin foto"
-        )}
-      </div>
-      <div className="mb-4">
-        <strong>Título:</strong>
-        <p>{cancion.titulo}</p>
-      </div>
-      <div className="mb-4">
-        <strong>Álbum:</strong>
-        <p>{cancion.album}</p>
-      </div>
-      <div className="mb-4">
-        <strong>Duración:</strong>
-        <p>{cancion.duracion}</p>
-      </div>
-      <div className="mb-4">
-        <strong>Año:</strong>
-        <p>{cancion.año}</p>
-      </div>
-      <div className="mb-4">
-        <strong>Género:</strong>
-        <p>{cancion.genero}</p>
-      </div>
-      <div className="mb-4">
-        <strong>Estado:</strong>
-        <p>{cancion.estado}</p>
-      </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end space-x-3 mt-6">
         <button
           onClick={onClose}
-          className="bg-purple-500 text-white p-2 rounded-md"
+          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={onSave}
+          disabled={!isFormValid()}
+          className={`px-4 py-2 rounded-lg transition ${isFormValid()
+            ? "bg-cyan-600 text-white hover:bg-cyan-700"
+            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+        >
+          Guardar
+        </button>
+      </div>
+    </motion.div>
+  </motion.div>
+);
+
+// ModalVer Component
+const ModalVer = ({ cancion, onClose }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+  >
+    <motion.div
+      initial={{ scale: 0.9 }}
+      animate={{ scale: 1 }}
+      className="bg-white rounded-xl p-6 w-full max-w-md"
+    >
+      <h2 className="text-2xl font-bold text-cyan-700 mb-4">Detalles de la Canción</h2>
+
+      <div className="space-y-4">
+        <div>
+          <label className="font-medium">Foto:</label>
+          {cancion.foto ? (
+            <img
+              src={URL.createObjectURL(cancion.foto)}
+              alt="Cover"
+              className="w-24 h-24 rounded-lg object-cover mt-2"
+            />
+          ) : (
+            <div className="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 mt-2">
+              Sin foto
+            </div>
+          )}
+        </div>
+
+        {[
+          { label: "Título", value: cancion.titulo },
+          { label: "Álbum", value: cancion.album },
+          { label: "Duración", value: cancion.duracion },
+          { label: "Año", value: cancion.año },
+          { label: "Género", value: cancion.genero },
+        ].map((item) => (
+          <div key={item.label}>
+            <label className="font-medium">{item.label}:</label>
+            <p className="mt-1">{item.value}</p>
+          </div>
+        ))}
+
+        <div>
+          <label className="font-medium">Estado:</label>
+          <span
+            className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-1 ${cancion.estado === "Activo"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+              }`}
+          >
+            {cancion.estado}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={onClose}
+          className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition"
         >
           Cerrar
         </button>
       </div>
-    </div>
-  </div>
+    </motion.div>
+  </motion.div>
 );
 
-// PropTypes
 ModalFormulario.propTypes = {
   formData: PropTypes.object.isRequired,
   onClose: PropTypes.func.isRequired,
