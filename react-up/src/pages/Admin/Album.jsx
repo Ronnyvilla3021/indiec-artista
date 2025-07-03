@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence} from "framer-motion";
 import {
   FiEye,
   FiEdit,
@@ -8,6 +8,8 @@ import {
   FiRefreshCcw,
   FiFilter,
   FiDownload,
+  FiPlusCircle,
+  FiSearch,
 } from "react-icons/fi";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
@@ -34,7 +36,9 @@ const Album = () => {
       activo: true,
     },
   ]);
-
+  const sanitizeInput = (input) => {
+    return DOMPurify.sanitize(input);
+  };
   // Estados para controlar la apertura y cierre de los modales
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
@@ -209,7 +213,7 @@ const Album = () => {
     });
 
   return (
-    <div className="p-8 min-h-screen bg-cover bg-center bg-[url('/fondo.gif')]">
+    <div className="p-4 sm:p-6 md:p-8 min-h-screen font-sans pt-16 md:ml-[20rem] relative overflow-hidden">
       {/* Encabezado y botón de agregar */}
       <div
         className="flex flex-col sm:flex-row md:flex-row items-center justify-between p-4 md:ml-72 text-white rounded-lg bg-cover bg-center"

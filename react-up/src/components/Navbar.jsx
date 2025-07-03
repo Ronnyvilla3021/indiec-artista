@@ -34,49 +34,65 @@ const Navbar = () => {
       window.location.href = "/"; // Redirige después de la animación
     }, 2000); // Ajusta el tiempo según la duración de la animación
   };
+ const menuItemClass =
+    "flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ease-in-out cursor-pointer group";
+  const menuItemHoverClass = "hover:bg-gradient-to-r hover:from-green-500 hover:to-emerald-600 hover:shadow-lg transform hover:scale-105"; // Enhanced hover effect
+  const menuItemIconClass =
+    "transition-colors duration-300 group-hover:text-gray-900 text-green-400"; // Green icon color by default
+  const menuItemTextClass =
+    "transition-colors duration-300 group-hover:text-gray-900 font-medium text-gray-200"; // Lighter text by default
 
   return (
     <div className="flex">
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-full bg-black text-white w-64 transform ${
+        className={`fixed top-0 left-0 h-full bg-gradient-to-b from-gray-900 to-black text-white w-64 transform ${
           isOpen ? "translate-x-0" : "-translate-x-full"
-        } transition-transform md:translate-x-0 md:w-72`}
+        } transition-transform duration-300 ease-in-out md:translate-x-0 md:w-72 shadow-2xl z-40`}
+      
       >
         <div className="p-4">
-          {/* Logo */}
-          <div className="text-3xl font-bold text-green-500 mb-8">INDIEC</div>
-
+          <div className="text-4xl font-extrabold text-green-400 mb-10 flex items-center justify-center border-b border-gray-700 pb-5">
+            <FaMusic className="mr-3 text-green-500 animate-pulse" />{" "}
+            {/* Added pulse animation */}
+            <span className="tracking-wide">𝕀ℕ𝔻𝕀𝔼ℂ</span>
+          </div>
           {/* Menu items */}
-          <ul className="space-y-6">
-            <li className="hover:bg-green-500 p-3 rounded-md transition-colors">
-              <a href="/dashboard" className="flex items-center gap-3">
-                <FaHome size={20} /> Dashboard
+          <ul className="space-y-4">
+            <li className={`${menuItemClass} ${menuItemHoverClass}`}>
+              <a href="/dashboard" className="flex items-center gap-3 w-full">
+                <FaHome size={22} className={menuItemIconClass} />{" "}
+                <span className={menuItemTextClass}>Dashboard</span>
               </a>
             </li>
-            <li className="hover:bg-green-500 p-3 rounded-md transition-colors">
-              <a href="/musica" className="flex items-center gap-3">
-                <FaMusic size={20} /> Música
+              <li className={`${menuItemClass} ${menuItemHoverClass}`}>
+              <a href="/musica" className="flex items-center gap-3 w-full">
+                <FaMusic size={22} className={menuItemIconClass} />{" "}
+                <span className={menuItemTextClass}>Musica</span>
               </a>
             </li>
-            <li className="hover:bg-green-500 p-3 rounded-md transition-colors">
-              <a href="/grupomusical" className="flex items-center gap-3">
-                <FaUsers size={20} /> Grupo Musical
+            <li className={`${menuItemClass} ${menuItemHoverClass}`}>
+              <a href="/grupomusical" className="flex items-center gap-3 w-full">
+                <FaUsers size={22} className={menuItemIconClass} />{" "}
+                <span className={menuItemTextClass}>Grupo Musical</span>
               </a>
             </li>
-            <li className="hover:bg-green-500 p-3 rounded-md transition-colors">
-              <a href="/album" className="flex items-center gap-3">
-                <BiSolidAlbum size={20} /> Album
+            <li className={`${menuItemClass} ${menuItemHoverClass}`}>
+              <a href="/album" className="flex items-center gap-3 w-full">
+                <BiSolidAlbum size={22} className={menuItemIconClass} />{" "}
+                <span className={menuItemTextClass}>Álbum</span>
               </a>
             </li>
-            <li className="hover:bg-green-500 p-3 rounded-md transition-colors">
-              <a href="/manager" className="flex items-center gap-3">
-                <GrUserManager size={20} /> Manager
+            <li className={`${menuItemClass} ${menuItemHoverClass}`}>
+              <a href="/manager" className="flex items-center gap-3 w-full">
+                <GrUserManager size={22} className={menuItemIconClass} />{" "}
+                <span className={menuItemTextClass}>Manager</span>
               </a>
             </li>
-            <li className="hover:bg-green-500 p-3 rounded-md transition-colors">
-              <a href="/eventos" className="flex items-center gap-3">
-                <GiConcentrationOrb size={20} /> Evento
+            <li className={`${menuItemClass} ${menuItemHoverClass}`}>
+              <a href="/eventos" className="flex items-center gap-3 w-full">
+                <FaUsers size={22} className={menuItemIconClass} />{" "}
+                <span className={menuItemTextClass}>Evento</span>
               </a>
             </li>
           </ul>
