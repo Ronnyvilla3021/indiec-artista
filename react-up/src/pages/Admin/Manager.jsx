@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FiEye,
   FiEdit,
@@ -8,10 +8,13 @@ import {
   FiRefreshCcw,
   FiFilter,
   FiDownload,
+  FiPlusCircle,
+  FiSearch
 } from "react-icons/fi";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
+import xss from "xss";
 
 const Manager = () => {
   const [managers, setManagers] = useState([
@@ -21,7 +24,7 @@ const Manager = () => {
       nombres: "Juan",
       correo: "juan.perez@example.com",
       genero: "Masculino",
-      fecha: "2025-02-10", // Agregué una propiedad de fecha para el ejemplo
+      fecha: "2025-02-10",
       estado: true,
     },
     {
@@ -30,7 +33,7 @@ const Manager = () => {
       nombres: "Maria",
       correo: "maria.gomez@example.com",
       genero: "Femenino",
-      fecha: "2025-03-20", // Agregué una propiedad de fecha para el ejemplo
+      fecha: "2025-03-20",
       estado: true,
     },
   ]);
@@ -44,21 +47,33 @@ const Manager = () => {
     nombres: "",
     correo: "",
     genero: "",
-    fecha: "", // Agregué una propiedad de fecha para el formulario
+    fecha: "",
   });
   const [currentManager, setCurrentManager] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState("asc"); // Estado para el orden de la fecha
+  const [filterActive, setFilterActive] = useState("all");
+  const [sortOrder, setSortOrder] = useState("asc");
   const [errors, setErrors] = useState({});
 
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
+  // Animaciones
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
-  const handleSortByDate = () => {
-    setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"));
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
   };
 
+  const buttonVariants = {
+    hover: { scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" },
+    tap: { scale: 0.95 }
+  };
+
+  // Funciones de manejo
+  const handleSearchChange = (e) => setSearchTerm(xss(e.target.value));
+  
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredManagers);
     const workbook = XLSX.utils.book_new();
@@ -66,20 +81,33 @@ const Manager = () => {
     XLSX.writeFile(workbook, "managers.xlsx");
   };
 
-  const filteredManagers = managers
-    .filter(
-      (manager) =>
-        manager.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        manager.apellidos.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortOrder === "asc") {
-        return new Date(a.fecha) - new Date(b.fecha);
-      } else {
-        return new Date(b.fecha) - new Date(a.fecha);
-      }
+  const handleFilterChange = () => {
+    setFilterActive(prev => {
+      if (prev === "all") return "active";
+      if (prev === "active") return "inactive";
+      return "all";
     });
+  };
 
+  const handleSortByDate = () => {
+    setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+  };
+
+  const filteredManagers = managers
+    .filter(manager => 
+      manager.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      manager.apellidos.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter(manager => {
+      if (filterActive === "all") return true;
+      return filterActive === "active" ? manager.estado : !manager.estado;
+    })
+    .sort((a, b) => sortOrder === "asc" ? 
+      new Date(a.fecha) - new Date(b.fecha) : 
+      new Date(b.fecha) - new Date(a.fecha)
+    );
+
+  // Funciones de modales
   const openModalCrear = () => {
     setFormData({
       foto: null,
@@ -89,45 +117,41 @@ const Manager = () => {
       genero: "",
       fecha: "",
     });
-    setErrors({});
     setModalCrear(true);
   };
-
-  const closeModalCrear = () => setModalCrear(false);
 
   const openModalEditar = (index) => {
     setCurrentManager(index);
     setFormData(managers[index]);
-    setErrors({});
     setModalEditar(true);
   };
-
-  const closeModalEditar = () => setModalEditar(false);
 
   const openModalVer = (index) => {
     setCurrentManager(index);
     setModalVer(true);
   };
 
-  const closeModalVer = () => setModalVer(false);
+  const closeModal = () => {
+    setModalCrear(false);
+    setModalEditar(false);
+    setModalVer(false);
+  };
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
-    if (name === "foto") {
-      setFormData({ ...formData, foto: files[0] });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === "foto" ? files[0] : xss(value)
+    }));
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.apellidos)
-      newErrors.apellidos = "Los apellidos son obligatorios.";
-    if (!formData.nombres) newErrors.nombres = "Los nombres son obligatorios.";
-    if (!formData.correo) newErrors.correo = "El correo es obligatorio.";
-    if (!formData.genero) newErrors.genero = "El género es obligatorio.";
-    if (!formData.fecha) newErrors.fecha = "La fecha es obligatoria."; // Validación de fecha
+    if (!formData.apellidos) newErrors.apellidos = "Apellidos obligatorios";
+    if (!formData.nombres) newErrors.nombres = "Nombres obligatorios";
+    if (!formData.correo) newErrors.correo = "Correo obligatorio";
+    if (!formData.genero) newErrors.genero = "Género obligatorio";
+    if (!formData.fecha) newErrors.fecha = "Fecha obligatoria";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -135,365 +159,340 @@ const Manager = () => {
   const handleAddManager = () => {
     if (!validateForm()) return;
     setManagers([...managers, { ...formData, estado: true }]);
-    Swal.fire({
-      icon: "success",
-      title: "Usuario agregado",
-      text: `El usuario "${formData.nombres}" fue agregado exitosamente.`,
-    });
-    closeModalCrear();
+    Swal.fire("Éxito", "Manager agregado", "success");
+    closeModal();
   };
 
   const handleUpdateManager = () => {
     if (!validateForm()) return;
-    const updatedManagers = [...managers];
-    updatedManagers[currentManager] = { ...formData };
-    setManagers(updatedManagers);
-    Swal.fire({
-      icon: "success",
-      title: "Usuario actualizado",
-      text: `El usuario "${formData.nombres}" fue actualizado exitosamente.`,
-    });
-    closeModalEditar();
+    const updated = [...managers];
+    updated[currentManager] = formData;
+    setManagers(updated);
+    Swal.fire("Éxito", "Manager actualizado", "success");
+    closeModal();
   };
 
   const handleDeleteManager = (index) => {
-    const updatedManagers = [...managers];
-    updatedManagers[index].estado = false;
-    setManagers(updatedManagers);
-    Swal.fire({
-      icon: "error",
-      title: "Usuario desactivado",
-      text: "El usuario fue marcado como inactivo.",
-    });
+    const updated = [...managers];
+    updated[index].estado = false;
+    setManagers(updated);
+    Swal.fire("Info", "Manager desactivado", "info");
   };
 
   const handleRestoreManager = (index) => {
-    const updatedManagers = [...managers];
-    updatedManagers[index].estado = true;
-    setManagers(updatedManagers);
-    Swal.fire({
-      icon: "success",
-      title: "Usuario restaurado",
-      text: "El usuario fue restaurado y está activo nuevamente.",
-    });
+    const updated = [...managers];
+    updated[index].estado = true;
+    setManagers(updated);
+    Swal.fire("Éxito", "Manager activado", "success");
   };
 
   return (
-    <div
-      className="p-8 min-h-screen bg-cover bg-center"
-      style={{ backgroundImage: "url('/fondo.gif')" }}
-    >
-      {/* Encabezado y botón de agregar */}
-      <div
-        className="flex flex-col sm:flex-row md:flex-row items-center justify-between p-4 md:ml-72 text-white rounded-lg"
-        style={{
-          backgroundImage: "url('/img/dc.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          borderRadius: "20px",
-        }}
-      >
-        <p
-          className="text-center sm:text-left text-2xl sm:text-4xl md:text-5xl lg:text-6xl"
-          style={{ fontSize: "clamp(25px, 8vw, 60px)", margin: 0 }}
+    <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
+      {/* Fondo animado */}
+      <div className="absolute inset-0 z-0 opacity-20" style={{
+        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
+                   radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+        backgroundSize: "200% 200%",
+        animation: "bg-pan 20s ease infinite",
+      }}></div>
+
+      <style jsx>{`
+        @keyframes bg-pan {
+          0% { background-position: 0% 0%; }
+          50% { background-position: 100% 100%; }
+          100% { background-position: 0% 0%; }
+        }
+        .glass-card {
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(15px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+          border-radius: 1.5rem;
+        }
+        .glass-table-header {
+          background: rgba(0, 255, 140, 0.2);
+          backdrop-filter: blur(10px);
+          border-bottom: 1px solid rgba(0, 255, 140, 0.3);
+        }
+      `}</style>
+
+      <div className="relative z-10">
+        {/* Encabezado */}
+        <motion.div 
+          className="glass-card p-8 mb-8"
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 120 }}
         >
-          Manager
-        </p>
-        <div className="mt-4 sm:mt-0">
-          <button
-            onClick={openModalCrear}
-            className="bg-[#0aa5a9] text-white px-6 py-3 rounded-lg transition-transform duration-300 hover:bg-[#067b80] hover:scale-105"
-            style={{ fontSize: "18px" }}
-          >
-            Agregar Manager
-          </button>
-        </div>
-      </div>
+          <h1 className="text-4xl font-bold">Gestión de Managers</h1>
+          <p className="text-lg opacity-90">Administra los managers del sistema</p>
+        </motion.div>
 
-      {/* Migajas de pan */}
-      <div
-        className="md:ml-72 p-4 mx-auto bg-blue-100 rounded-lg shadow-lg"
-        style={{
-          backgroundColor: "#f1f8f9",
-          borderRadius: "20px",
-          marginTop: "20px",
-          marginBottom: "20px",
-          height: "auto",
-          padding: "10px",
-        }}
-      >
-        <nav aria-label="breadcrumb">
-          <ol className="flex flex-wrap gap-2 list-none p-0 m-0 justify-center items-center">
-            <li className="text-sm sm:text-base md:text-lg lg:text-lg text-center py-2">
-              <Link
-                to="/dashboard"
-                className="text-[#0aa5a9] px-4 py-2 rounded-lg transition duration-300 hover:bg-[#067b80] hover:text-white no-underline"
-              >
-                Inicio
-              </Link>
-            </li>
-            <li className="text-sm sm:text-base md:text-lg lg:text-lg text-center py-2">
-              <span className="text-[#0aa5a9] px-2">/</span>
-            </li>
-            <li className="text-sm sm:text-base md:text-lg lg:text-lg text-center py-2">
-              <span className="text-[#0aa5a9] px-4 py-2 rounded-lg transition duration-300 hover:bg-[#067b80] hover:text-white no-underline">
-                Manager
-              </span>
-            </li>
-          </ol>
-        </nav>
-      </div>
+        {/* Migas de pan */}
+        <motion.div 
+          className="glass-card p-4 mb-8 flex justify-center"
+          variants={itemVariants}
+        >
+          <nav className="flex items-center space-x-2">
+            <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
+              Inicio
+            </Link>
+            <span className="text-gray-500">/</span>
+            <span className="text-white">Managers</span>
+          </nav>
+        </motion.div>
 
-      {/* Contenedor de búsqueda, filtro y exportar */}
-      <div
-        className="md:ml-72 p-4 mx-auto bg-gray-100 rounded-lg shadow-lg"
-        style={{
-          backgroundColor: "#f1f8f9",
-          borderRadius: "20px",
-          marginTop: "20px",
-          marginBottom: "20px",
-          height: "auto",
-          padding: "10px",
-        }}
-      >
-        <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-4">
-          <div className=" w-full sm:w-auto">
-            <input
-              type="text"
-              placeholder="Buscar Manager..."
+        {/* Controles */}
+        <motion.div 
+          className="glass-card p-6 mb-8 flex flex-wrap gap-4"
+          variants={itemVariants}
+        >
+          <div className="relative flex-grow">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
+            <input 
+              type="text" 
+              placeholder="Buscar manager..." 
               value={searchTerm}
               onChange={handleSearchChange}
-              className="border border-gray-300 p-2 rounded-lg w-full pl-10"
+              className="w-full pl-10 pr-4 py-2 bg-transparent border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
             />
           </div>
-          <button
-            onClick={handleSortByDate}
-            className="bg-blue-500 text-white py-2 px-6 rounded-lg hover:bg-blue-300 transition-colors duration-300 flex items-center gap-2"
-          >
-            <FiFilter />
-            {sortOrder === "asc" ? "Fecha Ascendente" : "Fecha Descendente"}
-          </button>
-          <button
-            onClick={handleExportToExcel}
-            className="bg-green-500 text-white py-2 px-6 rounded-lg hover:bg-green-300 transition-colors duration-300 flex items-center gap-2"
-          >
-            <FiDownload /> Exportar a Excel
-          </button>
-        </div>
-      </div>
+          <div className="flex gap-2">
+            <motion.button 
+              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+              onClick={handleFilterChange}
+            >
+              <FiFilter />
+              {filterActive === "all" ? "Todos" : filterActive === "active" ? "Activos" : "Inactivos"}
+            </motion.button>
+            <motion.button 
+              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+              onClick={handleSortByDate}
+            >
+              <FiFilter />
+              {sortOrder === "asc" ? "Fecha Asc" : "Fecha Desc"}
+            </motion.button>
+            <motion.button 
+              className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+              onClick={handleExportToExcel}
+            >
+              <FiDownload /> Exportar
+            </motion.button>
+            <motion.button 
+              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+              onClick={openModalCrear}
+            >
+              <FiPlusCircle /> Agregar Manager
+            </motion.button>
+          </div>
+        </motion.div>
 
-      {/* Tabla de managers */}
-      <div
-        className="flex-1 ml-0 md:ml-72 p-4 rounded-lg overflow-auto"
-        style={{ backgroundColor: "rgba(241, 248, 249, 0.8)" }}
-      >
-        <div className="overflow-x-auto">
-          <table
-            className="min-w-full table-auto rounded-lg shadow-md"
-            style={{ backgroundColor: "rgba(255, 255, 255, 0.8)" }}
-          >
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="px-4 py-2">Foto</th>
-                <th className="px-4 py-2">Apellidos</th>
-                <th className="px-4 py-2">Nombres</th>
-                <th className="px-4 py-2">Correo</th>
-                <th className="px-4 py-2">Género</th>
-                <th className="px-4 py-2">Fecha</th>{" "}
-                {/* Nueva columna de fecha */}
-                <th className="px-4 py-2">Estado</th>
-                <th className="px-4 py-2">Acciones</th>
+        {/* Tabla */}
+        <motion.div 
+          className="glass-card p-6 overflow-x-auto"
+          variants={itemVariants}
+        >
+          <table className="w-full">
+            <thead>
+              <tr className="glass-table-header">
+                <th className="py-3 px-6 text-left">Foto</th>
+                <th className="py-3 px-6 text-left">Apellidos</th>
+                <th className="py-3 px-6 text-left">Nombres</th>
+                <th className="py-3 px-6 text-left">Correo</th>
+                <th className="py-3 px-6 text-left">Género</th>
+                <th className="py-3 px-6 text-left">Fecha</th>
+                <th className="py-3 px-6 text-center">Estado</th>
+                <th className="py-3 px-6 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filteredManagers.map((manager, index) => (
-                <motion.tr
-                  key={index}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className={`border-t ${
-                    manager.estado ? "hover:bg-gray-100" : "bg-gray-300"
-                  }`}
-                >
-                  <td className="px-4 py-2">
-                    {manager.foto ? (
-                      <img
-                        src={URL.createObjectURL(manager.foto)}
-                        alt="Foto"
-                        className="w-12 h-12 object-cover rounded-md"
-                      />
-                    ) : (
-                      "Sin foto"
-                    )}
-                  </td>
-                  <td className="px-4 py-2">{manager.apellidos}</td>
-                  <td className="px-4 py-2">{manager.nombres}</td>
-                  <td className="px-4 py-2">{manager.correo}</td>
-                  <td className="px-4 py-2">{manager.genero}</td>
-                  <td className="px-4 py-2">{manager.fecha}</td>{" "}
-                  {/* Nueva columna de fecha */}
-                  <td className="px-4 py-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-white ${
+              <AnimatePresence>
+                {filteredManagers.map((manager, index) => (
+                  <motion.tr
+                    key={index}
+                    className="border-b border-gray-700 hover:bg-[rgba(0,255,140,0.05)]"
+                    variants={itemVariants}
+                  >
+                    <td className="py-4 px-6">
+                      {manager.foto ? (
+                        <img 
+                          src={URL.createObjectURL(manager.foto)} 
+                          className="w-12 h-12 rounded-lg object-cover"
+                          alt="Manager"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center text-xs">
+                          Sin foto
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-4 px-6">{manager.apellidos}</td>
+                    <td className="py-4 px-6">{manager.nombres}</td>
+                    <td className="py-4 px-6">{manager.correo}</td>
+                    <td className="py-4 px-6">{manager.genero}</td>
+                    <td className="py-4 px-6">{manager.fecha}</td>
+                    <td className="py-4 px-6 text-center">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         manager.estado ? "bg-green-500" : "bg-red-500"
-                      }`}
-                    >
-                      {manager.estado ? "Activo" : "Inactivo"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 flex space-x-2">
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer"
-                      onClick={() => openModalVer(index)}
-                    >
-                      <FiEye className="text-white" size={20} />
-                    </motion.div>
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center cursor-pointer"
-                      onClick={() => openModalEditar(index)}
-                    >
-                      <FiEdit className="text-white" size={20} />
-                    </motion.div>
-                    {manager.estado ? (
-                      <motion.div
-                        whileHover={{ scale: 1.1 }}
+                      }`}>
+                        {manager.estado ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 flex justify-center gap-2">
+                      <motion.button
                         whileTap={{ scale: 0.9 }}
-                        className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center cursor-pointer"
-                        onClick={() => handleDeleteManager(index)}
+                        className="p-2 bg-blue-500 rounded-full"
+                        onClick={() => openModalVer(index)}
                       >
-                        <FiTrash2 className="text-white" size={20} />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        whileHover={{ scale: 1.1 }}
+                        <FiEye className="text-white"/>
+                      </motion.button>
+                      <motion.button
                         whileTap={{ scale: 0.9 }}
-                        className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center cursor-pointer"
-                        onClick={() => handleRestoreManager(index)}
+                        className="p-2 bg-yellow-500 rounded-full"
+                        onClick={() => openModalEditar(index)}
                       >
-                        <FiRefreshCcw className="text-white" size={20} />
-                      </motion.div>
-                    )}
-                  </td>
-                </motion.tr>
-              ))}
+                        <FiEdit className="text-white"/>
+                      </motion.button>
+                      {manager.estado ? (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 bg-red-500 rounded-full"
+                          onClick={() => handleDeleteManager(index)}
+                        >
+                          <FiTrash2 className="text-white"/>
+                        </motion.button>
+                      ) : (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 bg-green-500 rounded-full"
+                          onClick={() => handleRestoreManager(index)}
+                        >
+                          <FiRefreshCcw className="text-white"/>
+                        </motion.button>
+                      )}
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             </tbody>
           </table>
-        </div>
+        </motion.div>
 
         {/* Modales */}
-        {modalCrear && (
-          <ModalFormulario
-            formData={formData}
-            onClose={closeModalCrear}
-            onChange={handleInputChange}
-            onSave={handleAddManager}
-            errors={errors}
-          />
-        )}
-
-        {modalEditar && (
-          <ModalFormulario
-            formData={formData}
-            onClose={closeModalEditar}
-            onChange={handleInputChange}
-            onSave={handleUpdateManager}
-            errors={errors}
-          />
-        )}
-
-        {modalVer && (
-          <ModalVer data={managers[currentManager]} onClose={closeModalVer} />
-        )}
+        <AnimatePresence>
+          {modalCrear && (
+            <ModalFormulario
+              formData={formData}
+              onClose={closeModal}
+              onChange={handleInputChange}
+              onSave={handleAddManager}
+              errors={errors}
+              title="Agregar Manager"
+            />
+          )}
+          
+          {modalEditar && (
+            <ModalFormulario
+              formData={formData}
+              onClose={closeModal}
+              onChange={handleInputChange}
+              onSave={handleUpdateManager}
+              errors={errors}
+              title="Editar Manager"
+            />
+          )}
+          
+          {modalVer && (
+            <ModalVer
+              data={managers[currentManager]}
+              onClose={closeModal}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 };
 
-const ModalFormulario = ({ formData, onClose, onChange, onSave, errors }) => {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-h-[80vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Formulario de Usuario</h2>
-        <div className="mb-4 text-center">
-          <label className="block text-sm font-semibold text-gray-700 mb-2"></label>
-          <div>
-            <label
-              htmlFor="foto"
-              className="inline-block bg-[#067b80] text-white text-sm font-semibold px-4 py-2 rounded-md cursor-pointer hover:bg-[#056b6e] focus:ring-2 focus:ring-[#056b6e] focus:outline-none"
-            >
-              Subir Imagen
-            </label>
+// Componente ModalFormulario
+const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+  >
+    <motion.div
+      initial={{ scale: 0.9 }}
+      animate={{ scale: 1 }}
+      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+    >
+      <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
+      
+      <div className="mb-4 text-center">
+        <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
+        <label
+          htmlFor="foto"
+          className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
+        >
+          Subir Imagen
+          <input
+            id="foto"
+            type="file"
+            name="foto"
+            onChange={onChange}
+            className="hidden"
+          />
+        </label>
+      </div>
+
+      <div className="space-y-4">
+        {[
+          { label: "Apellidos", name: "apellidos", type: "text" },
+          { label: "Nombres", name: "nombres", type: "text" },
+          { label: "Correo", name: "correo", type: "email" },
+          { label: "Fecha", name: "fecha", type: "date" },
+        ].map((field) => (
+          <div key={field.name}>
+            <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
             <input
-              id="foto"
-              type="file"
-              name="foto"
+              type={field.type}
+              name={field.name}
+              value={formData[field.name]}
               onChange={onChange}
-              className="hidden"
+              className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
+                errors[field.name] ? "border-red-500" : ""
+              }`}
             />
+            {errors[field.name] && (
+              <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+            )}
           </div>
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Apellidos</label>
-          <input
-            type="text"
-            name="apellidos"
-            value={formData.apellidos}
-            onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
-              errors.apellidos ? "border-red-500" : ""
-            }`}
-          />
-          {errors.apellidos && (
-            <p className="text-red-500 text-sm mt-1">{errors.apellidos}</p>
-          )}
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Nombres</label>
-          <input
-            type="text"
-            name="nombres"
-            value={formData.nombres}
-            onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
-              errors.nombres ? "border-red-500" : ""
-            }`}
-          />
-          {errors.nombres && (
-            <p className="text-red-500 text-sm mt-1">{errors.nombres}</p>
-          )}
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Correo</label>
-          <input
-            type="email"
-            name="correo"
-            value={formData.correo}
-            onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
-              errors.correo ? "border-red-500" : ""
-            }`}
-          />
-          {errors.correo && (
-            <p className="text-red-500 text-sm mt-1">{errors.correo}</p>
-          )}
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Género</label>
+        ))}
+
+        <div>
+          <label className="block text-sm font-semibold mb-1 text-gray-300">Género</label>
           <select
             name="genero"
             value={formData.genero}
             onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
+            className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
               errors.genero ? "border-red-500" : ""
             }`}
           >
-            <option value="">Seleccionar</option>
+            <option value="">Selecciona un género</option>
             <option value="Masculino">Masculino</option>
             <option value="Femenino">Femenino</option>
           </select>
@@ -501,89 +500,96 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors }) => {
             <p className="text-red-500 text-sm mt-1">{errors.genero}</p>
           )}
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Fecha</label>
-          <input
-            type="date"
-            name="fecha"
-            value={formData.fecha}
-            onChange={onChange}
-            className={`w-full border px-3 py-2 rounded-lg ${
-              errors.fecha ? "border-red-500" : ""
-            }`}
-          />
-          {errors.fecha && (
-            <p className="text-red-500 text-sm mt-1">{errors.fecha}</p>
-          )}
-        </div>
-        <div className="flex justify-end">
-          <button
-            onClick={onSave}
-            className="bg-blue-500 text-white p-2 rounded-lg mr-2"
-          >
-            Guardar
-          </button>
-          <button
-            onClick={onClose}
-            className="bg-red-400 text-white p-2 rounded-md"
-          >
-            Cerrar
-          </button>
-        </div>
       </div>
-    </div>
-  );
-};
 
-const ModalVer = ({ data, onClose }) => {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-h-[80vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Ver Usuario</h2>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Foto</label>
+      <div className="flex justify-end space-x-3 mt-8">
+        <motion.button
+          onClick={onClose}
+          className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Cancelar
+        </motion.button>
+        <motion.button
+          onClick={onSave}
+          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Guardar
+        </motion.button>
+      </div>
+    </motion.div>
+  </motion.div>
+);
+
+// Componente ModalVer
+const ModalVer = ({ data, onClose }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+  >
+    <motion.div
+      initial={{ scale: 0.9 }}
+      animate={{ scale: 1 }}
+      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+    >
+      <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Manager</h2>
+      
+      <div className="space-y-4">
+        <div className="text-center">
           {data.foto ? (
             <img
               src={URL.createObjectURL(data.foto)}
-              alt="Foto"
-              className="w-12 h-12 object-cover rounded-md"
+              alt="Manager"
+              className="w-32 h-32 rounded-lg object-cover mx-auto"
             />
           ) : (
-            <span>Sin foto</span>
+            <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
+              <span className="text-gray-400">Sin foto</span>
+            </div>
           )}
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Apellidos</label>
-          <p>{data.apellidos}</p>
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Nombres</label>
-          <p>{data.nombres}</p>
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Correo</label>
-          <p>{data.correo}</p>
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Género</label>
-          <p>{data.genero}</p>
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Fecha</label>
-          <p>{data.fecha}</p>
-        </div>
-        <div className="flex justify-end">
-          <button
-            onClick={onClose}
-            className="bg-purple-600 text-white p-2 rounded-md"
-          >
-            Cerrar
-          </button>
+
+        {[
+          { label: "Apellidos", value: data.apellidos },
+          { label: "Nombres", value: data.nombres },
+          { label: "Correo", value: data.correo },
+          { label: "Género", value: data.genero },
+          { label: "Fecha", value: data.fecha },
+        ].map((item) => (
+          <div key={item.label}>
+            <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
+            <p className="text-lg text-white">{item.value}</p>
+          </div>
+        ))}
+
+        <div>
+          <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
+          <span className={`px-4 py-2 rounded-full text-sm font-bold ${
+            data.estado ? "bg-green-500 text-white" : "bg-red-500 text-white"
+          }`}>
+            {data.estado ? "Activo" : "Inactivo"}
+          </span>
         </div>
       </div>
-    </div>
-  );
-};
+
+      <div className="flex justify-end mt-8">
+        <motion.button
+          onClick={onClose}
+          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Cerrar
+        </motion.button>
+      </div>
+    </motion.div>
+  </motion.div>
+);
 
 ModalFormulario.propTypes = {
   formData: PropTypes.object.isRequired,
@@ -591,6 +597,7 @@ ModalFormulario.propTypes = {
   onChange: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
   errors: PropTypes.object.isRequired,
+  title: PropTypes.string.isRequired,
 };
 
 ModalVer.propTypes = {
