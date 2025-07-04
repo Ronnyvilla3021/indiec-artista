@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Import useEffect
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +15,8 @@ import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import xss from "xss";
+import AOS from 'aos'; // Import AOS
+import 'aos/dist/aos.css'; // Import AOS CSS
 
 const Album = () => {
   const [albums, setAlbums] = useState([
@@ -63,7 +65,17 @@ const Album = () => {
     "Metal",
   ];
 
-  // Animaciones
+  // Initialize AOS when the component mounts
+  useEffect(() => {
+    AOS.init({
+      duration: 1500, // Set default duration for AOS animations
+      easing: 'linear', // Set default easing for AOS animations
+      once: false // Animations can repeat on scroll up/down
+    });
+    AOS.refresh(); // Refresh AOS on component updates
+  }, []);
+
+  // Animaciones Framer Motion (existing)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -191,7 +203,7 @@ const Album = () => {
       {/* Fondo animado */}
       <div className="absolute inset-0 z-0 opacity-20" style={{
         background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
-                   radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
         backgroundSize: "200% 200%",
         animation: "bg-pan 20s ease infinite",
       }}></div>
@@ -217,21 +229,27 @@ const Album = () => {
       `}</style>
 
       <div className="relative z-10">
-        {/* Encabezado */}
+        {/* Encabezado - Apply AOS here */}
         <motion.div 
           className="glass-card p-8 mb-8"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120 }}
+          data-aos="fade-down" // AOS animation
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <h1 className="text-4xl font-bold">Álbumes Musicales</h1>
           <p className="text-lg opacity-90">Administra tu colección de álbumes</p>
         </motion.div>
 
-        {/* Migas de pan */}
+        {/* Migas de pan - Apply AOS here */}
         <motion.div 
           className="glass-card p-4 mb-8 flex justify-center"
           variants={itemVariants}
+          data-aos="fade-down" // AOS animation
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <nav className="flex items-center space-x-2">
             <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
@@ -242,10 +260,13 @@ const Album = () => {
           </nav>
         </motion.div>
 
-        {/* Controles */}
+        {/* Controles - Apply AOS here */}
         <motion.div 
           className="glass-card p-6 mb-8 flex flex-wrap gap-4"
           variants={itemVariants}
+          data-aos="fade-down" // AOS animation
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <div className="relative flex-grow">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
@@ -299,10 +320,13 @@ const Album = () => {
           </div>
         </motion.div>
 
-        {/* Tabla */}
+        {/* Tabla - Apply AOS here */}
         <motion.div 
           className="glass-card p-6 overflow-x-auto"
           variants={itemVariants}
+          data-aos="fade-down" // AOS animation
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <table className="w-full">
             <thead>
@@ -388,7 +412,7 @@ const Album = () => {
           </table>
         </motion.div>
 
-        {/* Modales */}
+        {/* Modales (unchanged) */}
         <AnimatePresence>
           {modalCrear && (
             <ModalFormulario
@@ -426,7 +450,7 @@ const Album = () => {
   );
 };
 
-// Componente ModalFormulario
+// Componente ModalFormulario (unchanged)
 const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors, title }) => (
   <motion.div
     initial={{ opacity: 0 }}
@@ -526,7 +550,7 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors,
   </motion.div>
 );
 
-// Componente ModalVer
+// Componente ModalVer (unchanged)
 const ModalVer = ({ data, onClose }) => (
   <motion.div
     initial={{ opacity: 0 }}

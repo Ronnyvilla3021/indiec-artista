@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiEye,
@@ -8,13 +8,24 @@ import {
   FiFilter,
   FiDownload,
   FiPlusCircle,
-  FiSearch
+  FiSearch,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import Swal from "sweetalert2";
+import AOS from "aos"; // Importa AOS
+import "aos/dist/aos.css"; // Importa el CSS de AOS
 
 const Musica = () => {
+  useEffect(() => {
+    AOS.init({
+      // Puedes configurar opciones globales aquí
+      duration: 1000, // Duración por defecto de las animaciones en ms
+      once: true, // Si las animaciones deben ocurrir solo una vez
+    });
+    AOS.refresh(); // Refresca AOS si el contenido cambia dinámicamente
+  }, []);
+
   const [canciones, setCanciones] = useState([
     {
       foto: null,
@@ -36,7 +47,16 @@ const Musica = () => {
     },
   ]);
 
-  const generos = ["Rock", "Pop", "Jazz", "Clásica", "Electrónica", "Hip-Hop", "Reggae", "Metal"];
+  const generos = [
+    "Rock",
+    "Pop",
+    "Jazz",
+    "Clásica",
+    "Electrónica",
+    "Hip-Hop",
+    "Reggae",
+    "Metal",
+  ];
 
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
@@ -183,34 +203,43 @@ const Musica = () => {
   // Variantes de animación
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
+    visible: { y: 0, opacity: 1 },
   };
 
   const buttonVariants = {
     hover: { scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" },
-    tap: { scale: 0.95 }
+    tap: { scale: 0.95 },
   };
 
   return (
     <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
       {/* Fondo animado */}
-      <div className="absolute inset-0 z-0 opacity-20" style={{
-        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
-                   radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
-        backgroundSize: "200% 200%",
-        animation: "bg-pan 20s ease infinite",
-      }}></div>
+      <div
+        className="absolute inset-0 z-0 opacity-20"
+        style={{
+          background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%),
+                        radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+          backgroundSize: "200% 200%",
+          animation: "bg-pan 20s ease infinite",
+        }}
+      ></div>
 
       <style jsx>{`
         @keyframes bg-pan {
-          0% { background-position: 0% 0%; }
-          50% { background-position: 100% 100%; }
-          100% { background-position: 0% 0%; }
+          0% {
+            background-position: 0% 0%;
+          }
+          50% {
+            background-position: 100% 100%;
+          }
+          100% {
+            background-position: 0% 0%;
+          }
         }
         .glass-card {
           background: rgba(255, 255, 255, 0.05);
@@ -239,6 +268,9 @@ const Musica = () => {
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120 }}
+          data-aos="fade-down" // Animación AOS aplicada aquí
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <h1 className="text-4xl font-bold">Gestión de Música</h1>
           <p className="text-lg opacity-90">Administra tu colección musical</p>
@@ -249,6 +281,9 @@ const Musica = () => {
         <motion.div
           className="glass-card p-4 mb-8 flex justify-center"
           variants={itemVariants}
+          data-aos="fade-down" // Animación AOS aplicada aquí
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <nav aria-label="breadcrumb">
             <ol className="flex items-center space-x-2">
@@ -260,7 +295,9 @@ const Musica = () => {
                   Inicio
                 </Link>
               </li>
-              <li><span className="text-gray-500 px-2">/</span></li>
+              <li>
+                <span className="text-gray-500 px-2">/</span>
+              </li>
               <li>
                 <span className="text-white px-4 py-2 rounded-lg font-semibold">
                   Música
@@ -274,6 +311,9 @@ const Musica = () => {
         <motion.div
           className="glass-card p-6 mb-8 flex flex-wrap gap-4"
           variants={itemVariants}
+          data-aos="fade-down" // Animación AOS aplicada aquí
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <div className="relative flex-grow">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -320,6 +360,9 @@ const Musica = () => {
         <motion.div
           className="glass-card p-6 overflow-x-auto"
           variants={itemVariants}
+          data-aos="fade-down" // Animación AOS aplicada aquí
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <table className="w-full">
             <thead>
@@ -361,10 +404,13 @@ const Musica = () => {
                     <td className="py-4 px-6">{cancion.año}</td>
                     <td className="py-4 px-6">{cancion.genero}</td>
                     <td className="py-4 px-6 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${cancion.estado === "Activo"
-                          ? "bg-green-500 text-white"
-                          : "bg-red-500 text-white"
-                        }`}>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          cancion.estado === "Activo"
+                            ? "bg-green-500 text-white"
+                            : "bg-red-500 text-white"
+                        }`}
+                      >
                         {cancion.estado}
                       </span>
                     </td>
@@ -457,10 +503,14 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, title }
       animate={{ scale: 1 }}
       className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
     >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
+      <h2 className="text-3xl font-bold mb-6 text-white text-center">
+        {title}
+      </h2>
 
       <div className="mb-4 text-center">
-        <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
+        <label className="block text-sm font-semibold mb-2 text-gray-300">
+          Imagen
+        </label>
         <label
           htmlFor="foto"
           className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
@@ -484,7 +534,9 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, title }
           { label: "Año", name: "año", type: "number" },
         ].map((field) => (
           <div key={field.name}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
+            <label className="block text-sm font-semibold mb-1 text-gray-300">
+              {field.label}
+            </label>
             <input
               type={field.type}
               name={field.name}
@@ -496,7 +548,9 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, title }
         ))}
 
         <div>
-          <label className="block text-sm font-semibold mb-1 text-gray-300">Género</label>
+          <label className="block text-sm font-semibold mb-1 text-gray-300">
+            Género
+          </label>
           <select
             name="genero"
             value={formData.genero}
@@ -505,7 +559,9 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, title }
           >
             <option value="">Selecciona un género</option>
             {generos.map((genero) => (
-              <option key={genero} value={genero}>{genero}</option>
+              <option key={genero} value={genero}>
+                {genero}
+              </option>
             ))}
           </select>
         </div>
@@ -546,7 +602,9 @@ const ModalVer = ({ cancion, onClose }) => (
       animate={{ scale: 1 }}
       className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
     >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles de la Canción</h2>
+      <h2 className="text-3xl font-bold mb-6 text-white text-center">
+        Detalles de la Canción
+      </h2>
 
       <div className="space-y-4">
         <div className="text-center">
@@ -571,17 +629,24 @@ const ModalVer = ({ cancion, onClose }) => (
           { label: "Género", value: cancion.genero },
         ].map((item) => (
           <div key={item.label}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
+            <label className="block text-sm font-semibold mb-1 text-gray-300">
+              {item.label}
+            </label>
             <p className="text-lg text-white">{item.value}</p>
           </div>
         ))}
 
         <div>
-          <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
-          <span className={`px-4 py-2 rounded-full text-sm font-bold ${cancion.estado === "Activo"
-              ? "bg-green-500 text-white"
-              : "bg-red-500 text-white"
-            }`}>
+          <label className="block text-sm font-semibold mb-1 text-gray-300">
+            Estado
+          </label>
+          <span
+            className={`px-4 py-2 rounded-full text-sm font-bold ${
+              cancion.estado === "Activo"
+                ? "bg-green-500 text-white"
+                : "bg-red-500 text-white"
+            }`}
+          >
             {cancion.estado}
           </span>
         </div>

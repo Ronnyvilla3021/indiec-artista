@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Add useEffect
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
+
+import AOS from 'aos'; // Import AOS
+import 'aos/dist/aos.css'; // Import the AOS CSS
 
 // Componente de carga que se muestra durante la espera de acciones asíncronas
 const Loading = () => {
@@ -25,6 +28,15 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false); // Estado de carga
   const [dataLoaded, setDataLoaded] = useState(false); // Estado para indicar datos cargados correctamente
+
+  // Initialize AOS when the component mounts
+  useEffect(() => {
+    AOS.init({
+      duration: 1000, // Global duration for all AOS animations
+      easing: 'ease-in-out', // Global easing for all AOS animations
+      once: true // Animations happen only once
+    });
+  }, []); // Empty dependency array means this runs once on mount
 
   // Función para manejar el inicio de sesión
   const handleLogin = (e) => {
@@ -88,6 +100,9 @@ const Login = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
+        data-aos="fade-down" // Added AOS animation here
+        data-aos-easing="linear"
+        data-aos-duration="1500"
       >
         {/* Imagen del lado izquierdo para pantallas grandes */}
         <div

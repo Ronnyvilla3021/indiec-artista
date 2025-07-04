@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Import useEffect
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,8 +13,18 @@ import {
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
+import AOS from 'aos'; // Import AOS
+import 'aos/dist/aos.css'; // Import AOS CSS
 
 const GrupoMusical = () => {
+  useEffect(() => {
+    AOS.init({
+      once: true, // Animation plays only once
+      mirror: false, // Disables animation when scrolling up
+    });
+    AOS.refresh(); // Recalculate all positions of AOS elements
+  }, []); // Initialize AOS on component mount
+
   const [grupos, setGrupos] = useState([
     {
       foto: null,
@@ -71,7 +81,7 @@ const GrupoMusical = () => {
 
   // Funciones de manejo
   const handleSearchChange = (e) => setSearchTerm(e.target.value);
-  
+
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredGrupos);
     const workbook = XLSX.utils.book_new();
@@ -177,8 +187,8 @@ const GrupoMusical = () => {
     <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
       {/* Fondo animado */}
       <div className="absolute inset-0 z-0 opacity-20" style={{
-        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
-                   radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%),
+                    radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
         backgroundSize: "200% 200%",
         animation: "bg-pan 20s ease infinite",
       }}></div>
@@ -205,20 +215,26 @@ const GrupoMusical = () => {
 
       <div className="relative z-10">
         {/* Encabezado */}
-        <motion.div 
+        <motion.div
           className="glass-card p-8 mb-8"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120 }}
+          data-aos="fade-down" // AOS animation added here
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <h1 className="text-4xl font-bold">Grupos Musicales</h1>
           <p className="text-lg opacity-90">Administra tus grupos musicales</p>
         </motion.div>
 
         {/* Migas de pan centradas */}
-        <motion.div 
+        <motion.div
           className="glass-card p-4 mb-8 flex justify-center"
           variants={itemVariants}
+          data-aos="fade-down" // AOS animation added here
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <nav className="flex items-center space-x-2">
             <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
@@ -230,22 +246,25 @@ const GrupoMusical = () => {
         </motion.div>
 
         {/* Controles */}
-        <motion.div 
+        <motion.div
           className="glass-card p-6 mb-8 flex flex-wrap gap-4"
           variants={itemVariants}
+          data-aos="fade-down" // AOS animation added here
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <div className="relative flex-grow">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
-            <input 
-              type="text" 
-              placeholder="Buscar grupo..." 
+            <input
+              type="text"
+              placeholder="Buscar grupo..."
               value={searchTerm}
               onChange={handleSearchChange}
               className="w-full pl-10 pr-4 py-2 bg-transparent border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
             />
           </div>
           <div className="flex gap-2">
-            <motion.button 
+            <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
               whileHover="hover"
@@ -255,7 +274,7 @@ const GrupoMusical = () => {
               <FiFilter />
               {filterActive === "all" ? "Todos" : filterActive === "active" ? "Activos" : "Inactivos"}
             </motion.button>
-            <motion.button 
+            <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
               whileHover="hover"
@@ -264,7 +283,7 @@ const GrupoMusical = () => {
             >
               <FiDownload /> Exportar
             </motion.button>
-            <motion.button 
+            <motion.button
               className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
               whileHover="hover"
@@ -277,9 +296,12 @@ const GrupoMusical = () => {
         </motion.div>
 
         {/* Tabla */}
-        <motion.div 
+        <motion.div
           className="glass-card p-6 overflow-x-auto"
           variants={itemVariants}
+          data-aos="fade-down" // AOS animation added here
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
           <table className="w-full">
             <thead>
@@ -304,8 +326,8 @@ const GrupoMusical = () => {
                   >
                     <td className="py-4 px-6">
                       {grupo.foto ? (
-                        <img 
-                          src={URL.createObjectURL(grupo.foto)} 
+                        <img
+                          src={URL.createObjectURL(grupo.foto)}
                           className="w-12 h-12 rounded-lg object-cover"
                           alt="Grupo"
                         />
@@ -320,9 +342,9 @@ const GrupoMusical = () => {
                     <td className="py-4 px-6">{grupo.descripcion}</td>
                     <td className="py-4 px-6">{grupo.plataforma}</td>
                     <td className="py-4 px-6">
-                      <a 
-                        href={grupo.url} 
-                        target="_blank" 
+                      <a
+                        href={grupo.url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#00FF8C] hover:underline"
                       >
@@ -388,7 +410,7 @@ const GrupoMusical = () => {
               title="Agregar Grupo"
             />
           )}
-          
+
           {modalEditar && (
             <ModalFormulario
               formData={formData}
@@ -399,7 +421,7 @@ const GrupoMusical = () => {
               title="Editar Grupo"
             />
           )}
-          
+
           {modalVer && (
             <ModalVer
               data={grupos[currentGrupo]}
@@ -426,7 +448,7 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title })
       className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
     >
       <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
-      
+
       <div className="mb-4 text-center">
         <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
         <label
@@ -506,7 +528,7 @@ const ModalVer = ({ data, onClose }) => (
       className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
     >
       <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Grupo</h2>
-      
+
       <div className="space-y-4">
         <div className="text-center">
           {data.foto ? (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Add useEffect
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +15,9 @@ import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import xss from "xss";
+
+import AOS from 'aos'; // Import AOS
+import 'aos/dist/aos.css'; // Import the AOS CSS
 
 const Manager = () => {
   const [managers, setManagers] = useState([
@@ -54,6 +57,15 @@ const Manager = () => {
   const [filterActive, setFilterActive] = useState("all");
   const [sortOrder, setSortOrder] = useState("asc");
   const [errors, setErrors] = useState({});
+
+  // Initialize AOS when the component mounts
+  useEffect(() => {
+    AOS.init({
+      duration: 1000, // Global duration for all AOS animations
+      easing: 'ease-in-out', // Global easing for all AOS animations
+      once: true // Animations happen only once
+    });
+  }, []);
 
   // Animaciones
   const containerVariants = {
@@ -191,7 +203,7 @@ const Manager = () => {
       {/* Fondo animado */}
       <div className="absolute inset-0 z-0 opacity-20" style={{
         background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
-                   radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
         backgroundSize: "200% 200%",
         animation: "bg-pan 20s ease infinite",
       }}></div>
@@ -216,7 +228,13 @@ const Manager = () => {
         }
       `}</style>
 
-      <div className="relative z-10">
+      {/* Added AOS animation here */}
+      <div 
+        className="relative z-10"
+        data-aos="fade-down"
+        data-aos-easing="linear"
+        data-aos-duration="1500"
+      >
         {/* Encabezado */}
         <motion.div 
           className="glass-card p-8 mb-8"

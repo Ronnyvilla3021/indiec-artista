@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiEdit, FiSave, FiX, FiCheck, FiUpload } from "react-icons/fi";
+
+import AOS from 'aos'; // Import AOS
+import 'aos/dist/aos.css'; // Import the AOS CSS
 
 const Perfil = () => {
   // Estado para los datos del usuario
@@ -16,6 +19,15 @@ const Perfil = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
+
+  // Initialize AOS when the component mounts
+  useEffect(() => {
+    AOS.init({
+      duration: 1000, // Global duration for all AOS animations
+      easing: 'ease-in-out', // Global easing for all AOS animations
+      once: true // Animations happen only once
+    });
+  }, []);
 
   // Datos de imágenes para publicaciones
   const images = [
@@ -56,8 +68,8 @@ const Perfil = () => {
     <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
       {/* Fondo animado */}
       <div className="absolute inset-0 z-0 opacity-20" style={{
-        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
-                   radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%),
+                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
         backgroundSize: "200% 200%",
         animation: "bg-pan 20s ease infinite",
       }}></div>
@@ -77,7 +89,13 @@ const Perfil = () => {
         }
       `}</style>
 
-      <div className="relative z-10">
+      {/* Added AOS animation here */}
+      <div
+        className="relative z-10"
+        data-aos="fade-down"
+        data-aos-easing="linear"
+        data-aos-duration="1500"
+      >
         {/* Encabezado */}
         <motion.div
           className="glass-card p-8 mb-8"
@@ -99,7 +117,7 @@ const Perfil = () => {
           <div className="flex flex-col md:flex-row gap-8">
             {/* Foto de perfil */}
             <div className="flex flex-col items-center">
-              <motion.div 
+              <motion.div
                 className="relative w-40 h-40 mb-4"
                 whileHover={{ scale: 1.05 }}
               >
@@ -196,7 +214,7 @@ const Perfil = () => {
                     type="button"
                     onClick={isEditing ? saveChanges : toggleEdit}
                     className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
-                      isEditing 
+                      isEditing
                         ? "bg-gradient-to-r from-green-500 to-lime-500"
                         : "bg-gradient-to-r from-blue-500 to-cyan-500"
                     }`}
@@ -227,7 +245,7 @@ const Perfil = () => {
           transition={{ delay: 0.2 }}
         >
           <h2 className="text-2xl font-bold mb-6 text-center">Mis Publicaciones</h2>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {images.map((image, index) => (
               <motion.div
@@ -261,7 +279,7 @@ const Perfil = () => {
             exit={{ opacity: 0 }}
           >
             <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-            
+
             <motion.div
               className="glass-card p-8 max-w-md w-full relative"
               initial={{ scale: 0.8 }}
@@ -278,10 +296,10 @@ const Perfil = () => {
                   <FiCheck className="text-2xl" />
                 </div>
               </motion.div>
-              
+
               <h3 className="text-2xl font-bold text-center mb-2">¡Éxito!</h3>
               <p className="text-center mb-6">Tus cambios se han guardado correctamente.</p>
-              
+
               <div className="flex justify-center">
                 <motion.button
                   onClick={closeModal}

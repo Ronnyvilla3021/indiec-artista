@@ -2,6 +2,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 // Hooks de React para manejar estado y efectos secundarios
 import { useState, useEffect } from "react";
+// Importar AOS y su CSS
+import AOS from "aos";
+import "aos/dist/aos.css"; // Asegúrate de que esta ruta sea correcta
 
 // Datos de estadísticas modificados para artista
 const stats = [
@@ -89,14 +92,23 @@ const mySongs = [
 
 // Componente principal del dashboard
 const Dashboard = () => {
+  // Inicializa AOS cuando el componente se monta
+  useEffect(() => {
+    AOS.init({
+      // Puedes ajustar las configuraciones globales aquí
+      duration: 1000, // Duración predeterminada de la animación
+      once: true, // Si la animación debe ocurrir solo una vez
+    });
+  }, []);
+
   // Estados del reproductor y UI
-  const [playingId, setPlayingId] = useState(null);           // ID de la canción reproduciéndose
-  const [currentSong, setCurrentSong] = useState(null);       // Canción actual
-  const [isPlaying, setIsPlaying] = useState(false);          // ¿Está reproduciendo?
-  const [progress, setProgress] = useState(0);                // Progreso de reproducción
-  const [volume, setVolume] = useState(70);                   // Volumen del reproductor
-  const [activeTab, setActiveTab] = useState("mis canciones"); // Pestaña activa modificada
-  const [expandedCard, setExpandedCard] = useState(null);     // Álbum expandido
+  const [playingId, setPlayingId] = useState(null);
+  const [currentSong, setCurrentSong] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [volume, setVolume] = useState(70);
+  const [activeTab, setActiveTab] = useState("mis canciones");
+  const [expandedCard, setExpandedCard] = useState(null);
 
   // Efecto que simula el progreso de una canción mientras se reproduce
   useEffect(() => {
@@ -143,29 +155,31 @@ const Dashboard = () => {
 
   // Retorna el JSX del dashboard con su estructura completa
   return (
-    // CAMBIO DE COLOR: Fondo principal del dashboard (degradado de grises/negros)
     <div className="flex-1 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
       {/* Background Animated Gradient (Conceptual - requires more advanced CSS/JS) */}
-      {/* CAMBIO DE COLOR: Gradiente animado de fondo (verdes/negros) */}
       <div className="absolute inset-0 z-0 opacity-20" style={{
-        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 80%), 
-                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 80%),
+                      radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
         backgroundSize: '200% 200%',
         animation: 'bg-pan 20s ease infinite'
       }}></div>
 
-      {/* Tailwind CSS for bg-pan animation, glassmorphism, and custom scrollbar */}
       <style jsx>{`
         @keyframes bg-pan {
           0% { background-position: 0% 0%; }
           50% { background-position: 100% 100%; }
           100% { background-position: 0% 0%; }
         }
-        
       `}</style>
 
       {/* Header superior con logo y búsqueda */}
-      <header className="flex justify-between items-center mb-12">
+      {/* Aplica la animación AOS al header */}
+      <header
+        className="flex justify-between items-center mb-12"
+        data-aos="fade-down"
+        data-aos-easing="linear"
+        data-aos-duration="1500"
+      >
         {/* Animación de entrada del logo y título */}
         <motion.div
           initial={{ x: -50, opacity: 0 }}
@@ -173,7 +187,7 @@ const Dashboard = () => {
           transition={{ duration: 0.5 }}
           className="flex items-center ml-72"
         >
-          <div className="text-4xl mr-3">🎧</div> {/* Ícono de auriculares */}
+          <div className="text-4xl mr-3">🎧</div>
           <h1 className="text-3xl font-bold text-[#1FBF55]">
             Mi Perfil Musical
           </h1>
@@ -186,8 +200,6 @@ const Dashboard = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex items-center space-x-4"
         >
-
-          {/* Avatar circular del usuario */}
           <div className="w-10 h-10 rounded-full bg-[#09804C] flex items-center justify-center cursor-pointer">
             <span className="text-xl">👤</span>
           </div>
@@ -198,7 +210,6 @@ const Dashboard = () => {
       <div className="flex">
         {/* Contenido principal desplazado */}
         <div className="flex-1 ml-80 pr-6 bg-[#010012]">
-
           {/* Navegación por pestañas modificada */}
           <motion.div
             className="flex mb-8 border-b border-gray-700"
@@ -234,7 +245,6 @@ const Dashboard = () => {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-
               {/* --- PESTAÑA MIS CANCIONES --- */}
               {activeTab === "mis canciones" && (
                 <section className="mb-12">
@@ -252,7 +262,6 @@ const Dashboard = () => {
                         key={album.id}
                         className={`relative rounded-2xl overflow-hidden shadow-xl cursor-pointer transition-all duration-300
                         ${expandedCard === album.id ? 'lg:col-span-2 lg:row-span-2 max-h-[450px]' : 'max-h-[350px]'}`}
-
                         whileHover={{ scale: 1.03 }}
                         onClick={() => toggleExpandCard(album.id)}
                         layout

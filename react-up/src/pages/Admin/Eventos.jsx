@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Agrega useEffect
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,8 +15,19 @@ import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import xss from "xss";
+import AOS from 'aos'; // Importa AOS
+import 'aos/dist/aos.css'; // Importa los estilos de AOS
 
 const Eventos = () => {
+  // Inicializa AOS cuando el componente se monta
+  useEffect(() => {
+    AOS.init({
+      duration: 1500, // Duración por defecto para todas las animaciones AOS
+      easing: 'linear', // Easing por defecto para todas las animaciones AOS
+      once: true // Si quieres que la animación solo se ejecute una vez al hacer scroll
+    });
+  }, []);
+
   const [eventos, setEventos] = useState([
     {
       foto: null,
@@ -201,11 +212,16 @@ const Eventos = () => {
   };
 
   return (
-    <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
+    <div 
+      className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden"
+      data-aos="fade-down"
+      data-aos-easing="linear"
+      data-aos-duration="1500"
+    >
       {/* Fondo animado */}
       <div className="absolute inset-0 z-0 opacity-20" style={{
         background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
-                   radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
         backgroundSize: "200% 200%",
         animation: "bg-pan 20s ease infinite",
       }}></div>
