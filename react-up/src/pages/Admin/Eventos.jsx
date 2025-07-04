@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // Agrega useEffect
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,22 +15,21 @@ import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import xss from "xss";
-import AOS from 'aos'; // Importa AOS
-import 'aos/dist/aos.css'; // Importa los estilos de AOS
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 const Eventos = () => {
-  // Inicializa AOS cuando el componente se monta
   useEffect(() => {
     AOS.init({
-      duration: 1500, // Duración por defecto para todas las animaciones AOS
-      easing: 'linear', // Easing por defecto para todas las animaciones AOS
-      once: true // Si quieres que la animación solo se ejecute una vez al hacer scroll
+      duration: 1500,
+      easing: 'linear',
+      once: true
     });
   }, []);
 
   const [eventos, setEventos] = useState([
     {
-      foto: null,
+      foto: "https://edit.org/img/blog/n/4s2-1024-plantilla-imagen-portada-evento-facebook.webp", // URL de imagen de ejemplo
       nombreEvento: "Concierto de Rock",
       generoMusical: "Rock",
       descripcion: "Evento de música rock",
@@ -42,7 +41,7 @@ const Eventos = () => {
       estado: true,
     },
     {
-      foto: null,
+      foto: "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/fb-cover-for-the-party-festival-design-template-e557f7cec2750b6e8995031080f35477_screen.jpg?ts=1566566381", // URL de imagen de ejemplo
       nombreEvento: "Festival de Jazz",
       generoMusical: "Jazz",
       descripcion: "Evento de música jazz",
@@ -75,7 +74,6 @@ const Eventos = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [errors, setErrors] = useState({});
 
-  // Animaciones
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -91,7 +89,6 @@ const Eventos = () => {
     tap: { scale: 0.95 }
   };
 
-  // Funciones de manejo
   const handleSearchChange = (e) => setSearchTerm(xss(e.target.value));
   
   const handleExportToExcel = () => {
@@ -126,7 +123,6 @@ const Eventos = () => {
       new Date(b.fecha) - new Date(a.fecha)
     );
 
-  // Funciones de modales
   const openModalCrear = () => {
     setFormData({
       foto: null,
@@ -218,7 +214,6 @@ const Eventos = () => {
       data-aos-easing="linear"
       data-aos-duration="1500"
     >
-      {/* Fondo animado */}
       <div className="absolute inset-0 z-0 opacity-20" style={{
         background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
                      radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
@@ -247,7 +242,6 @@ const Eventos = () => {
       `}</style>
 
       <div className="relative z-10">
-        {/* Encabezado */}
         <motion.div 
           className="glass-card p-8 mb-8"
           initial={{ opacity: 0, y: -50 }}
@@ -258,7 +252,6 @@ const Eventos = () => {
           <p className="text-lg opacity-90">Administra los eventos del sistema</p>
         </motion.div>
 
-        {/* Migas de pan */}
         <motion.div 
           className="glass-card p-4 mb-8 flex justify-center"
           variants={itemVariants}
@@ -272,7 +265,6 @@ const Eventos = () => {
           </nav>
         </motion.div>
 
-        {/* Controles */}
         <motion.div 
           className="glass-card p-6 mb-8 flex flex-wrap gap-4"
           variants={itemVariants}
@@ -329,7 +321,6 @@ const Eventos = () => {
           </div>
         </motion.div>
 
-        {/* Tabla */}
         <motion.div 
           className="glass-card p-6 overflow-x-auto"
           variants={itemVariants}
@@ -361,7 +352,7 @@ const Eventos = () => {
                     <td className="py-4 px-6">
                       {evento.foto ? (
                         <img 
-                          src={URL.createObjectURL(evento.foto)} 
+                          src={typeof evento.foto === 'string' ? evento.foto : URL.createObjectURL(evento.foto)}
                           className="w-12 h-12 rounded-lg object-cover"
                           alt="Evento"
                         />
@@ -426,7 +417,6 @@ const Eventos = () => {
           </table>
         </motion.div>
 
-        {/* Modales */}
         <AnimatePresence>
           {modalCrear && (
             <ModalFormulario
@@ -462,170 +452,194 @@ const Eventos = () => {
   );
 };
 
-// Componente ModalFormulario
-const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
-  >
+const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title }) => {
+  const [previewFotoUrl, setPreviewFotoUrl] = useState(null);
+
+  useEffect(() => {
+    if (formData.foto instanceof File) {
+      const objectUrl = URL.createObjectURL(formData.foto);
+      setPreviewFotoUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    } else if (typeof formData.foto === 'string') {
+      setPreviewFotoUrl(formData.foto);
+    } else {
+      setPreviewFotoUrl(null);
+    }
+  }, [formData.foto]);
+
+  return (
     <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-2xl border border-white border-opacity-20"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
     >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="mb-4 text-center col-span-2">
-          <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
-          <label
-            htmlFor="foto"
-            className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
-          >
-            Subir Imagen
-            <input
-              id="foto"
-              type="file"
-              name="foto"
-              onChange={onChange}
-              className="hidden"
-            />
-          </label>
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-2xl border border-white border-opacity-20"
+      >
+        <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mb-4 text-center col-span-2">
+            <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
+            {previewFotoUrl && (
+              <img
+                src={previewFotoUrl}
+                alt="Vista previa"
+                className="w-32 h-32 rounded-lg object-cover mx-auto mb-4"
+              />
+            )}
+            <label
+              htmlFor="foto"
+              className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
+            >
+              {previewFotoUrl ? "Cambiar Imagen" : "Subir Imagen"}
+              <input
+                id="foto"
+                type="file"
+                name="foto"
+                onChange={onChange}
+                className="hidden"
+                accept="image/*"
+              />
+            </label>
+          </div>
+
+          {[
+            { label: "Nombre del Evento", name: "nombreEvento", type: "text" },
+            { label: "Género Musical", name: "generoMusical", type: "text" },
+            { label: "Ubicación", name: "ubicacion", type: "text" },
+            { label: "Fecha", name: "fecha", type: "date" },
+            { label: "Contacto", name: "contacto", type: "text" },
+            { label: "Capacidad", name: "capacidad", type: "number" },
+            { label: "Artistas", name: "artistas", type: "text", colSpan: "col-span-2" },
+            { label: "Descripción", name: "descripcion", type: "text", colSpan: "col-span-2" },
+          ].map((field) => (
+            <div key={field.name} className={field.colSpan || ""}>
+              <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
+              {field.type === "text" && field.name === "descripcion" ? (
+                <textarea
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={onChange}
+                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
+                    errors[field.name] ? "border-red-500" : ""
+                  }`}
+                  rows="3"
+                />
+              ) : (
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={onChange}
+                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
+                    errors[field.name] ? "border-red-500" : ""
+                  }`}
+                />
+              )}
+              {errors[field.name] && (
+                <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+              )}
+            </div>
+          ))}
         </div>
 
-        {[
-          { label: "Nombre del Evento", name: "nombreEvento", type: "text" },
-          { label: "Género Musical", name: "generoMusical", type: "text" },
-          { label: "Ubicación", name: "ubicacion", type: "text" },
-          { label: "Fecha", name: "fecha", type: "date" },
-          { label: "Contacto", name: "contacto", type: "text" },
-          { label: "Capacidad", name: "capacidad", type: "number" },
-          { label: "Artistas", name: "artistas", type: "text", colSpan: "col-span-2" },
-          { label: "Descripción", name: "descripcion", type: "text", colSpan: "col-span-2" },
-        ].map((field) => (
-          <div key={field.name} className={field.colSpan || ""}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
-            {field.type === "text" && field.name === "descripcion" ? (
-              <textarea
-                name={field.name}
-                value={formData[field.name]}
-                onChange={onChange}
-                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                  errors[field.name] ? "border-red-500" : ""
-                }`}
-                rows="3"
+        <div className="flex justify-end space-x-3 mt-8">
+          <motion.button
+            onClick={onClose}
+            className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Cancelar
+          </motion.button>
+          <motion.button
+            onClick={onSave}
+            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Guardar
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const ModalVer = ({ data, onClose }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+    >
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-2xl border border-white border-opacity-20"
+      >
+        <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Evento</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="text-center col-span-2">
+            {data.foto ? (
+              <img
+                src={typeof data.foto === 'string' ? data.foto : URL.createObjectURL(data.foto)}
+                alt="Evento"
+                className="w-32 h-32 rounded-lg object-cover mx-auto"
               />
             ) : (
-              <input
-                type={field.type}
-                name={field.name}
-                value={formData[field.name]}
-                onChange={onChange}
-                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                  errors[field.name] ? "border-red-500" : ""
-                }`}
-              />
-            )}
-            {errors[field.name] && (
-              <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+              <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
+                <span className="text-gray-400">Sin foto</span>
+              </div>
             )}
           </div>
-        ))}
-      </div>
 
-      <div className="flex justify-end space-x-3 mt-8">
-        <motion.button
-          onClick={onClose}
-          className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Cancelar
-        </motion.button>
-        <motion.button
-          onClick={onSave}
-          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Guardar
-        </motion.button>
-      </div>
-    </motion.div>
-  </motion.div>
-);
-
-// Componente ModalVer
-const ModalVer = ({ data, onClose }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
-  >
-    <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-2xl border border-white border-opacity-20"
-    >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Evento</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="text-center col-span-2">
-          {data.foto ? (
-            <img
-              src={URL.createObjectURL(data.foto)}
-              alt="Evento"
-              className="w-32 h-32 rounded-lg object-cover mx-auto"
-            />
-          ) : (
-            <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
-              <span className="text-gray-400">Sin foto</span>
+          {[
+            { label: "Nombre del Evento", value: data.nombreEvento },
+            { label: "Género Musical", value: data.generoMusical },
+            { label: "Ubicación", value: data.ubicacion },
+            { label: "Fecha", value: data.fecha },
+            { label: "Contacto", value: data.contacto },
+            { label: "Capacidad", value: data.capacidad },
+            { label: "Artistas", value: data.artistas, colSpan: "col-span-2" },
+            { label: "Descripción", value: data.descripcion, colSpan: "col-span-2" },
+          ].map((item) => (
+            <div key={item.label} className={item.colSpan || ""}>
+              <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
+              <p className="text-lg text-white break-words">{item.value}</p>
             </div>
-          )}
-        </div>
+          ))}
 
-        {[
-          { label: "Nombre del Evento", value: data.nombreEvento },
-          { label: "Género Musical", value: data.generoMusical },
-          { label: "Ubicación", value: data.ubicacion },
-          { label: "Fecha", value: data.fecha },
-          { label: "Contacto", value: data.contacto },
-          { label: "Capacidad", value: data.capacidad },
-          { label: "Artistas", value: data.artistas, colSpan: "col-span-2" },
-          { label: "Descripción", value: data.descripcion, colSpan: "col-span-2" },
-        ].map((item) => (
-          <div key={item.label} className={item.colSpan || ""}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
-            <p className="text-lg text-white break-words">{item.value}</p>
+          <div className="col-span-2">
+            <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
+            <span className={`px-4 py-2 rounded-full text-sm font-bold ${
+              data.estado ? "bg-green-500 text-white" : "bg-red-500 text-white"
+            }`}>
+              {data.estado ? "Activo" : "Inactivo"}
+            </span>
           </div>
-        ))}
-
-        <div className="col-span-2">
-          <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
-          <span className={`px-4 py-2 rounded-full text-sm font-bold ${
-            data.estado ? "bg-green-500 text-white" : "bg-red-500 text-white"
-          }`}>
-            {data.estado ? "Activo" : "Inactivo"}
-          </span>
         </div>
-      </div>
 
-      <div className="flex justify-end mt-8">
-        <motion.button
-          onClick={onClose}
-          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Cerrar
-        </motion.button>
-      </div>
+        <div className="flex justify-end mt-8">
+          <motion.button
+            onClick={onClose}
+            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Cerrar
+          </motion.button>
+        </div>
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
+  );
+};
 
 ModalFormulario.propTypes = {
   formData: PropTypes.object.isRequired,

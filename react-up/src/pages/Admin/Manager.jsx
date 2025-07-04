@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // Add useEffect
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,14 +15,13 @@ import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import xss from "xss";
-
-import AOS from 'aos'; // Import AOS
-import 'aos/dist/aos.css'; // Import the AOS CSS
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 const Manager = () => {
   const [managers, setManagers] = useState([
     {
-      foto: null,
+      foto: "https://randomuser.me/api/portraits/men/1.jpg",
       apellidos: "Perez",
       nombres: "Juan",
       correo: "juan.perez@example.com",
@@ -31,7 +30,7 @@ const Manager = () => {
       estado: true,
     },
     {
-      foto: null,
+      foto: "https://randomuser.me/api/portraits/women/1.jpg",
       apellidos: "Gomez",
       nombres: "Maria",
       correo: "maria.gomez@example.com",
@@ -58,16 +57,14 @@ const Manager = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [errors, setErrors] = useState({});
 
-  // Initialize AOS when the component mounts
   useEffect(() => {
     AOS.init({
-      duration: 1000, // Global duration for all AOS animations
-      easing: 'ease-in-out', // Global easing for all AOS animations
-      once: true // Animations happen only once
+      duration: 1000,
+      easing: 'ease-in-out',
+      once: true
     });
   }, []);
 
-  // Animaciones
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -83,7 +80,6 @@ const Manager = () => {
     tap: { scale: 0.95 }
   };
 
-  // Funciones de manejo
   const handleSearchChange = (e) => setSearchTerm(xss(e.target.value));
   
   const handleExportToExcel = () => {
@@ -119,7 +115,6 @@ const Manager = () => {
       new Date(b.fecha) - new Date(a.fecha)
     );
 
-  // Funciones de modales
   const openModalCrear = () => {
     setFormData({
       foto: null,
@@ -200,7 +195,6 @@ const Manager = () => {
 
   return (
     <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
-      {/* Fondo animado */}
       <div className="absolute inset-0 z-0 opacity-20" style={{
         background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
                      radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
@@ -228,14 +222,7 @@ const Manager = () => {
         }
       `}</style>
 
-      {/* Added AOS animation here */}
-      <div 
-        className="relative z-10"
-        data-aos="fade-down"
-        data-aos-easing="linear"
-        data-aos-duration="1500"
-      >
-        {/* Encabezado */}
+      <div className="relative z-10" data-aos="fade-down" data-aos-easing="linear" data-aos-duration="1500">
         <motion.div 
           className="glass-card p-8 mb-8"
           initial={{ opacity: 0, y: -50 }}
@@ -246,11 +233,7 @@ const Manager = () => {
           <p className="text-lg opacity-90">Administra los managers del sistema</p>
         </motion.div>
 
-        {/* Migas de pan */}
-        <motion.div 
-          className="glass-card p-4 mb-8 flex justify-center"
-          variants={itemVariants}
-        >
+        <motion.div className="glass-card p-4 mb-8 flex justify-center" variants={itemVariants}>
           <nav className="flex items-center space-x-2">
             <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
               Inicio
@@ -260,11 +243,7 @@ const Manager = () => {
           </nav>
         </motion.div>
 
-        {/* Controles */}
-        <motion.div 
-          className="glass-card p-6 mb-8 flex flex-wrap gap-4"
-          variants={itemVariants}
-        >
+        <motion.div className="glass-card p-6 mb-8 flex flex-wrap gap-4" variants={itemVariants}>
           <div className="relative flex-grow">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
             <input 
@@ -317,11 +296,7 @@ const Manager = () => {
           </div>
         </motion.div>
 
-        {/* Tabla */}
-        <motion.div 
-          className="glass-card p-6 overflow-x-auto"
-          variants={itemVariants}
-        >
+        <motion.div className="glass-card p-6 overflow-x-auto" variants={itemVariants}>
           <table className="w-full">
             <thead>
               <tr className="glass-table-header">
@@ -345,11 +320,19 @@ const Manager = () => {
                   >
                     <td className="py-4 px-6">
                       {manager.foto ? (
-                        <img 
-                          src={URL.createObjectURL(manager.foto)} 
-                          className="w-12 h-12 rounded-lg object-cover"
-                          alt="Manager"
-                        />
+                        typeof manager.foto === 'string' ? (
+                          <img 
+                            src={manager.foto}
+                            className="w-12 h-12 rounded-lg object-cover"
+                            alt="Manager"
+                          />
+                        ) : (
+                          <img 
+                            src={URL.createObjectURL(manager.foto)} 
+                            className="w-12 h-12 rounded-lg object-cover"
+                            alt="Manager"
+                          />
+                        )
                       ) : (
                         <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center text-xs">
                           Sin foto
@@ -408,7 +391,6 @@ const Manager = () => {
           </table>
         </motion.div>
 
-        {/* Modales */}
         <AnimatePresence>
           {modalCrear && (
             <ModalFormulario
@@ -444,7 +426,6 @@ const Manager = () => {
   );
 };
 
-// Componente ModalFormulario
 const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title }) => (
   <motion.div
     initial={{ opacity: 0 }}
@@ -542,7 +523,6 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title })
   </motion.div>
 );
 
-// Componente ModalVer
 const ModalVer = ({ data, onClose }) => (
   <motion.div
     initial={{ opacity: 0 }}
@@ -560,11 +540,19 @@ const ModalVer = ({ data, onClose }) => (
       <div className="space-y-4">
         <div className="text-center">
           {data.foto ? (
-            <img
-              src={URL.createObjectURL(data.foto)}
-              alt="Manager"
-              className="w-32 h-32 rounded-lg object-cover mx-auto"
-            />
+            typeof data.foto === 'string' ? (
+              <img
+                src={data.foto}
+                alt="Manager"
+                className="w-32 h-32 rounded-lg object-cover mx-auto"
+              />
+            ) : (
+              <img
+                src={URL.createObjectURL(data.foto)}
+                alt="Manager"
+                className="w-32 h-32 rounded-lg object-cover mx-auto"
+              />
+            )
           ) : (
             <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
               <span className="text-gray-400">Sin foto</span>

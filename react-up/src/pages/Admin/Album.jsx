@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // Import useEffect
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,13 +15,13 @@ import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import xss from "xss";
-import AOS from 'aos'; // Import AOS
-import 'aos/dist/aos.css'; // Import AOS CSS
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 const Album = () => {
   const [albums, setAlbums] = useState([
     {
-      foto: null,
+      foto: "https://img.freepik.com/vector-gratis/plantilla-portada-album-degradado_23-2150597431.jpg?semt=ais_hybrid&w=740", // URL de imagen de ejemplo
       titulo: "Álbum 1",
       artista: "Artista 1",
       año: 2020,
@@ -29,7 +29,7 @@ const Album = () => {
       activo: true,
     },
     {
-      foto: null,
+      foto: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTqOmmOybtuqzFFGq7T8Jh6Q-fAAnwG5ZOnQ&s", // URL de imagen de ejemplo
       titulo: "Álbum 2",
       artista: "Artista 2",
       año: 2021,
@@ -65,17 +65,15 @@ const Album = () => {
     "Metal",
   ];
 
-  // Initialize AOS when the component mounts
   useEffect(() => {
     AOS.init({
-      duration: 1500, // Set default duration for AOS animations
-      easing: 'linear', // Set default easing for AOS animations
-      once: false // Animations can repeat on scroll up/down
+      duration: 1500,
+      easing: 'linear',
+      once: false
     });
-    AOS.refresh(); // Refresh AOS on component updates
+    AOS.refresh();
   }, []);
 
-  // Animaciones Framer Motion (existing)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -91,7 +89,6 @@ const Album = () => {
     tap: { scale: 0.95 }
   };
 
-  // Funciones de manejo
   const handleSearchChange = (e) => setSearchTerm(xss(e.target.value));
   
   const handleExportToExcel = () => {
@@ -121,7 +118,6 @@ const Album = () => {
     })
     .sort((a, b) => sortOrder === "asc" ? a.año - b.año : b.año - a.año);
 
-  // Funciones de modales
   const openModalCrear = () => {
     setFormData({
       foto: null,
@@ -200,7 +196,6 @@ const Album = () => {
 
   return (
     <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
-      {/* Fondo animado */}
       <div className="absolute inset-0 z-0 opacity-20" style={{
         background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
                      radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
@@ -229,13 +224,12 @@ const Album = () => {
       `}</style>
 
       <div className="relative z-10">
-        {/* Encabezado - Apply AOS here */}
         <motion.div 
           className="glass-card p-8 mb-8"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120 }}
-          data-aos="fade-down" // AOS animation
+          data-aos="fade-down"
           data-aos-easing="linear"
           data-aos-duration="1500"
         >
@@ -243,11 +237,10 @@ const Album = () => {
           <p className="text-lg opacity-90">Administra tu colección de álbumes</p>
         </motion.div>
 
-        {/* Migas de pan - Apply AOS here */}
         <motion.div 
           className="glass-card p-4 mb-8 flex justify-center"
           variants={itemVariants}
-          data-aos="fade-down" // AOS animation
+          data-aos="fade-down"
           data-aos-easing="linear"
           data-aos-duration="1500"
         >
@@ -260,11 +253,10 @@ const Album = () => {
           </nav>
         </motion.div>
 
-        {/* Controles - Apply AOS here */}
         <motion.div 
           className="glass-card p-6 mb-8 flex flex-wrap gap-4"
           variants={itemVariants}
-          data-aos="fade-down" // AOS animation
+          data-aos="fade-down"
           data-aos-easing="linear"
           data-aos-duration="1500"
         >
@@ -320,11 +312,10 @@ const Album = () => {
           </div>
         </motion.div>
 
-        {/* Tabla - Apply AOS here */}
         <motion.div 
           className="glass-card p-6 overflow-x-auto"
           variants={itemVariants}
-          data-aos="fade-down" // AOS animation
+          data-aos="fade-down"
           data-aos-easing="linear"
           data-aos-duration="1500"
         >
@@ -351,7 +342,7 @@ const Album = () => {
                     <td className="py-4 px-6">
                       {album.foto ? (
                         <img 
-                          src={URL.createObjectURL(album.foto)} 
+                          src={typeof album.foto === 'string' ? album.foto : URL.createObjectURL(album.foto)}
                           className="w-12 h-12 rounded-lg object-cover"
                           alt="Álbum"
                         />
@@ -412,7 +403,6 @@ const Album = () => {
           </table>
         </motion.div>
 
-        {/* Modales (unchanged) */}
         <AnimatePresence>
           {modalCrear && (
             <ModalFormulario
@@ -450,171 +440,195 @@ const Album = () => {
   );
 };
 
-// Componente ModalFormulario (unchanged)
-const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors, title }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
-  >
-    <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
-    >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
-      
-      <div className="mb-4 text-center">
-        <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
-        <label
-          htmlFor="foto"
-          className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
-        >
-          Subir Imagen
-          <input
-            id="foto"
-            type="file"
-            name="foto"
-            onChange={onChange}
-            className="hidden"
-          />
-        </label>
-      </div>
+const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors, title }) => {
+  const [previewFotoUrl, setPreviewFotoUrl] = useState(null);
 
-      <div className="space-y-4">
-        {[
-          { label: "Título del Álbum", name: "titulo", type: "text" },
-          { label: "Artista", name: "artista", type: "text" },
-          { label: "Año", name: "año", type: "number" },
-        ].map((field) => (
-          <div key={field.name}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
+  useEffect(() => {
+    if (formData.foto instanceof File) {
+      const objectUrl = URL.createObjectURL(formData.foto);
+      setPreviewFotoUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    } else if (typeof formData.foto === 'string') {
+      setPreviewFotoUrl(formData.foto);
+    } else {
+      setPreviewFotoUrl(null);
+    }
+  }, [formData.foto]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+    >
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+      >
+        <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
+        
+        <div className="mb-4 text-center">
+          <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
+          {previewFotoUrl && (
+            <img
+              src={previewFotoUrl}
+              alt="Vista previa"
+              className="w-32 h-32 rounded-lg object-cover mx-auto mb-4"
+            />
+          )}
+          <label
+            htmlFor="foto"
+            className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
+          >
+            {previewFotoUrl ? "Cambiar Imagen" : "Subir Imagen"}
             <input
-              type={field.type}
-              name={field.name}
-              value={formData[field.name]}
+              id="foto"
+              type="file"
+              name="foto"
+              onChange={onChange}
+              className="hidden"
+              accept="image/*"
+            />
+          </label>
+        </div>
+
+        <div className="space-y-4">
+          {[
+            { label: "Título del Álbum", name: "titulo", type: "text" },
+            { label: "Artista", name: "artista", type: "text" },
+            { label: "Año", name: "año", type: "number" },
+          ].map((field) => (
+            <div key={field.name}>
+              <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
+              <input
+                type={field.type}
+                name={field.name}
+                value={formData[field.name]}
+                onChange={onChange}
+                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
+                  errors[field.name] ? "border-red-500" : ""
+                }`}
+              />
+              {errors[field.name] && (
+                <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+              )}
+            </div>
+          ))}
+
+          <div>
+            <label className="block text-sm font-semibold mb-1 text-gray-300">Género</label>
+            <select
+              name="genero"
+              value={formData.genero}
               onChange={onChange}
               className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                errors[field.name] ? "border-red-500" : ""
+                errors.genero ? "border-red-500" : ""
               }`}
-            />
-            {errors[field.name] && (
-              <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+            >
+              <option value="">Selecciona un género</option>
+              {generos.map((genero, index) => (
+                <option key={index} value={genero}>
+                  {genero}
+                </option>
+              ))}
+            </select>
+            {errors.genero && (
+              <p className="text-red-500 text-sm mt-1">{errors.genero}</p>
             )}
           </div>
-        ))}
+        </div>
 
-        <div>
-          <label className="block text-sm font-semibold mb-1 text-gray-300">Género</label>
-          <select
-            name="genero"
-            value={formData.genero}
-            onChange={onChange}
-            className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-              errors.genero ? "border-red-500" : ""
-            }`}
+        <div className="flex justify-end space-x-3 mt-8">
+          <motion.button
+            onClick={onClose}
+            className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <option value="">Selecciona un género</option>
-            {generos.map((genero, index) => (
-              <option key={index} value={genero}>
-                {genero}
-              </option>
-            ))}
-          </select>
-          {errors.genero && (
-            <p className="text-red-500 text-sm mt-1">{errors.genero}</p>
-          )}
+            Cancelar
+          </motion.button>
+          <motion.button
+            onClick={onSave}
+            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Guardar
+          </motion.button>
         </div>
-      </div>
-
-      <div className="flex justify-end space-x-3 mt-8">
-        <motion.button
-          onClick={onClose}
-          className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Cancelar
-        </motion.button>
-        <motion.button
-          onClick={onSave}
-          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Guardar
-        </motion.button>
-      </div>
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
+  );
+};
 
-// Componente ModalVer (unchanged)
-const ModalVer = ({ data, onClose }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
-  >
+const ModalVer = ({ data, onClose }) => {
+  return (
     <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
     >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Álbum</h2>
-      
-      <div className="space-y-4">
-        <div className="text-center">
-          {data.foto ? (
-            <img
-              src={URL.createObjectURL(data.foto)}
-              alt="Álbum"
-              className="w-32 h-32 rounded-lg object-cover mx-auto"
-            />
-          ) : (
-            <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
-              <span className="text-gray-400">Sin foto</span>
-            </div>
-          )}
-        </div>
-
-        {[
-          { label: "Título", value: data.titulo },
-          { label: "Artista", value: data.artista },
-          { label: "Año", value: data.año },
-          { label: "Género", value: data.genero },
-        ].map((item) => (
-          <div key={item.label}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
-            <p className="text-lg text-white">{item.value}</p>
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+      >
+        <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Álbum</h2>
+        
+        <div className="space-y-4">
+          <div className="text-center">
+            {data.foto ? (
+              <img
+                src={typeof data.foto === 'string' ? data.foto : URL.createObjectURL(data.foto)}
+                alt="Álbum"
+                className="w-32 h-32 rounded-lg object-cover mx-auto"
+              />
+            ) : (
+              <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
+                <span className="text-gray-400">Sin foto</span>
+              </div>
+            )}
           </div>
-        ))}
 
-        <div>
-          <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
-          <span className={`px-4 py-2 rounded-full text-sm font-bold ${
-            data.activo ? "bg-green-500 text-white" : "bg-red-500 text-white"
-          }`}>
-            {data.activo ? "Activo" : "Inactivo"}
-          </span>
+          {[
+            { label: "Título", value: data.titulo },
+            { label: "Artista", value: data.artista },
+            { label: "Año", value: data.año },
+            { label: "Género", value: data.genero },
+          ].map((item) => (
+            <div key={item.label}>
+              <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
+              <p className="text-lg text-white">{item.value}</p>
+            </div>
+          ))}
+
+          <div>
+            <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
+            <span className={`px-4 py-2 rounded-full text-sm font-bold ${
+              data.activo ? "bg-green-500 text-white" : "bg-red-500 text-white"
+            }`}>
+              {data.activo ? "Activo" : "Inactivo"}
+            </span>
+          </div>
         </div>
-      </div>
 
-      <div className="flex justify-end mt-8">
-        <motion.button
-          onClick={onClose}
-          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Cerrar
-        </motion.button>
-      </div>
+        <div className="flex justify-end mt-8">
+          <motion.button
+            onClick={onClose}
+            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Cerrar
+          </motion.button>
+        </div>
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
+  );
+};
 
 ModalFormulario.propTypes = {
   formData: PropTypes.object.isRequired,

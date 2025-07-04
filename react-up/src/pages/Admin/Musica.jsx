@@ -28,7 +28,7 @@ const Musica = () => {
 
   const [canciones, setCanciones] = useState([
     {
-      foto: null,
+      foto: "https://marketplace.canva.com/EAF2uOSjdVU/1/0/1600w/canva-negro-p%C3%BArpura-brillante-%C3%A1cido-brutalista-general-hip-hop-portada-de-%C3%A1lbum-TuLZGoZHXtA.jpg", // Simulated URL
       titulo: "Canción 1",
       album: "Álbum 1",
       duracion: "3:45",
@@ -37,7 +37,7 @@ const Musica = () => {
       estado: "Activo",
     },
     {
-      foto: null,
+      foto: "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/techno-music-album-cover-template-design-54ad7cf78c858c37ba141bb421ac79ee_screen.jpg?ts=1742997697",
       titulo: "Canción 2",
       album: "Álbum 2",
       duracion: "4:20",
@@ -388,7 +388,7 @@ const Musica = () => {
                     <td className="py-4 px-6">
                       {cancion.foto ? (
                         <img
-                          src={URL.createObjectURL(cancion.foto)}
+                          src={cancion.foto}
                           className="w-12 h-12 rounded-lg object-cover"
                           alt="Portada"
                         />
@@ -610,7 +610,7 @@ const ModalVer = ({ cancion, onClose }) => (
         <div className="text-center">
           {cancion.foto ? (
             <img
-              src={URL.createObjectURL(cancion.foto)}
+              src={cancion.foto}
               alt="Portada"
               className="w-32 h-32 rounded-lg object-cover mx-auto"
             />
