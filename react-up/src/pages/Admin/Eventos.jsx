@@ -21,7 +21,7 @@ import 'aos/dist/aos.css';
 const Eventos = () => {
   useEffect(() => {
     AOS.init({
-      duration: 1500,
+      duration: 1500, // Duración de 1500ms
       easing: 'linear',
       once: true
     });
@@ -210,13 +210,12 @@ const Eventos = () => {
   return (
     <div 
       className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden"
-      data-aos="fade-down"
+      data-aos="fade-down" // Animación AOS aplicada
       data-aos-easing="linear"
-      data-aos-duration="1500"
+      data-aos-duration="1500" // Duración de 1500ms
     >
       <div className="absolute inset-0 z-0 opacity-20" style={{
-        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
-                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
         backgroundSize: "200% 200%",
         animation: "bg-pan 20s ease infinite",
       }}></div>
@@ -240,7 +239,6 @@ const Eventos = () => {
           border-bottom: 1px solid rgba(0, 255, 140, 0.3);
         }
       `}</style>
-
       <div className="relative z-10">
         <motion.div 
           className="glass-card p-8 mb-8"
@@ -371,9 +369,7 @@ const Eventos = () => {
                     <td className="py-4 px-6">{evento.capacidad}</td>
                     <td className="py-4 px-6">{evento.artistas}</td>
                     <td className="py-4 px-6 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        evento.estado ? "bg-green-500" : "bg-red-500"
-                      }`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${evento.estado ? "bg-green-500" : "bg-red-500"}`}>
                         {evento.estado ? "Activo" : "Inactivo"}
                       </span>
                     </td>
@@ -472,7 +468,7 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title })
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50" // Fondo oscuro para el modal
     >
       <motion.div
         initial={{ scale: 0.9 }}
@@ -524,9 +520,7 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title })
                   name={field.name}
                   value={formData[field.name]}
                   onChange={onChange}
-                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                    errors[field.name] ? "border-red-500" : ""
-                  }`}
+                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors[field.name] ? "border-red-500" : ""}`}
                   rows="3"
                 />
               ) : (
@@ -535,9 +529,7 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title })
                   name={field.name}
                   value={formData[field.name]}
                   onChange={onChange}
-                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                    errors[field.name] ? "border-red-500" : ""
-                  }`}
+                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors[field.name] ? "border-red-500" : ""}`}
                 />
               )}
               {errors[field.name] && (
@@ -576,7 +568,7 @@ const ModalVer = ({ data, onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50" // Fondo oscuro para el modal
     >
       <motion.div
         initial={{ scale: 0.9 }}
@@ -618,9 +610,7 @@ const ModalVer = ({ data, onClose }) => {
 
           <div className="col-span-2">
             <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
-            <span className={`px-4 py-2 rounded-full text-sm font-bold ${
-              data.estado ? "bg-green-500 text-white" : "bg-red-500 text-white"
-            }`}>
+            <span className={`px-4 py-2 rounded-full text-sm font-bold ${data.estado ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}>
               {data.estado ? "Activo" : "Inactivo"}
             </span>
           </div>
