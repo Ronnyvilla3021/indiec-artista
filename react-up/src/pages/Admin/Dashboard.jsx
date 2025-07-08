@@ -217,7 +217,7 @@ const Dashboard = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            {["mis canciones", "estadísticas", "ingresos"].map((tab) => (
+            {["mis canciones", "estadísticas"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -356,7 +356,6 @@ const Dashboard = () => {
                           <div className="text-3xl">{icon}</div>
                         </div>
 
-                        {/* Indicador de cambio y tendencia */}
                         {trend && (
                           <div className={`mt-3 text-xs flex items-center ${trend === 'up' ? 'text-[#1FBF55]' : trend === 'down' ? 'text-[#C90000]' : 'text-yellow-400'}`}>
                             {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}
@@ -367,41 +366,8 @@ const Dashboard = () => {
                     ))}
                   </div>
 
-                  {/* Sección de gráficos */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    {/* Gráfico de oyentes */}
-                    <div className="bg-gray-800/50 rounded-xl p-6 h-64 flex flex-col">
-                      <h3 className="font-semibold mb-4 text-[#1FBF55]">Oyentes Mensuales</h3>
-                      <div className="flex-1 flex items-center justify-center">
-                        <p className="text-gray-400">Gráfico de oyentes semanales</p>
-                      </div>
-                    </div>
-
-                    {/* Gráfico de reproducciones */}
-                    <div className="bg-gray-800/50 rounded-xl p-6 h-64 flex flex-col">
-                      <h3 className="font-semibold mb-4 text-[#1FBF55]">Reproducciones por Canción</h3>
-                      <div className="flex-1 flex items-center justify-center">
-                        <p className="text-gray-400">Distribución de reproducciones</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Gráfico de interacciones */}
-                  <div className="bg-gray-800/50 rounded-xl p-6 h-64 flex flex-col mb-8">
-                    <h3 className="font-semibold mb-4 text-[#1FBF55]">Interacciones en Página</h3>
-                    <div className="flex-1 flex items-center justify-center">
-                      <p className="text-gray-400">Gráfico de visitas e interacciones</p>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* --- PESTAÑA INGRESOS --- */}
-              {activeTab === "ingresos" && (
-                <section>
-                  <h2 className="text-2xl font-bold mb-6 text-[#1FBF55]">Mis Ingresos</h2>
-
-                  {/* Resumen de ingresos */}
+                  {/* Sección de ingresos */}
+                  <h2 className="text-2xl font-bold mb-6 text-[#1FBF55]">Ingresos</h2>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
@@ -443,14 +409,6 @@ const Dashboard = () => {
                     </motion.div>
                   </div>
 
-                  {/* Gráfico de ingresos */}
-                  <div className="bg-gray-800/50 rounded-xl p-6 h-96 flex flex-col">
-                    <h3 className="font-semibold mb-4 text-[#1FBF55]">Historial de Ingresos</h3>
-                    <div className="flex-1 flex items-center justify-center">
-                      <p className="text-gray-400">Gráfico de ingresos mensuales</p>
-                    </div>
-                  </div>
-
                   {/* Tabla de transacciones */}
                   <div className="mt-8">
                     <h3 className="font-semibold mb-4 text-[#1FBF55]">Últimas Transacciones</h3>
@@ -480,6 +438,7 @@ const Dashboard = () => {
                   </div>
                 </section>
               )}
+
             </motion.div>
           </AnimatePresence>
         </div>
