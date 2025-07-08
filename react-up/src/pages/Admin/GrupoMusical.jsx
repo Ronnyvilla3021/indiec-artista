@@ -9,7 +9,8 @@ import {
   FiDownload,
   FiFilter,
   FiPlusCircle,
-  FiSearch
+  FiSearch,
+  FiExternalLink
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -27,22 +28,31 @@ const GrupoMusical = () => {
 
   const [grupos, setGrupos] = useState([
     {
-      foto: "https://media.gettyimages.com/id/74075509/es/foto/portrait-of-a-rock-band.jpg?s=612x612&w=gi&k=20&c=ALmtElqKeTBmCgJiIMh9gVe0Ybc6aIaeDdNmQrnU1Io=", // URL de imagen de ejemplo
-      nombreGrupo: "Grupo 1",
+      foto: "https://media.gettyimages.com/id/74075509/es/foto/portrait-of-a-rock-band.jpg?s=612x612&w=gi&k=20&c=ALmtElqKeTBmCgJiIMh9gVe0Ybc6aIaeDdNmQrnU1Io=",
+      nombreGrupo: "Los Rockeros",
       generoMusical: "Rock",
-      descripcion: "Descripción del Grupo 1",
+      descripcion: "Banda de rock clásico con más de 10 años de experiencia",
       plataforma: "Spotify",
       url: "https://spotify.com/grupo1",
       activo: true,
     },
     {
-      foto: "https://st.depositphotos.com/1000647/3910/i/450/depositphotos_39105587-stock-photo-band-performs-on-stage.jpg", // URL de imagen de ejemplo
-      nombreGrupo: "Grupo 2",
+      foto: "https://st.depositphotos.com/1000647/3910/i/450/depositphotos_39105587-stock-photo-band-performs-on-stage.jpg",
+      nombreGrupo: "Pop Stars",
       generoMusical: "Pop",
-      descripcion: "Descripción del Grupo 2",
+      descripcion: "Grupo pop juvenil con ritmos modernos",
       plataforma: "YouTube",
       url: "https://youtube.com/grupo2",
       activo: true,
+    },
+    {
+      foto: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      nombreGrupo: "Jazz Ensemble",
+      generoMusical: "Jazz",
+      descripcion: "Músicos profesionales especializados en jazz contemporáneo",
+      plataforma: "Bandcamp",
+      url: "https://jazzensemble.bandcamp.com",
+      activo: false,
     },
   ]);
 
@@ -67,9 +77,17 @@ const GrupoMusical = () => {
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
-  const itemVariants = {
+  const cardVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
+    visible: { 
+      y: 0, 
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 }
+    },
+    hover: {
+      y: -5,
+      boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)"
+    }
   };
 
   const buttonVariants = {
@@ -201,11 +219,6 @@ const GrupoMusical = () => {
           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
           border-radius: 1.5rem;
         }
-        .glass-table-header {
-          background: rgba(0, 255, 140, 0.2);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(0, 255, 140, 0.3);
-        }
       `}</style>
 
       <div className="relative z-10">
@@ -224,7 +237,7 @@ const GrupoMusical = () => {
 
         <motion.div
           className="glass-card p-4 mb-8 flex justify-center"
-          variants={itemVariants}
+          variants={cardVariants}
           data-aos="fade-down"
           data-aos-easing="linear"
           data-aos-duration="1500"
@@ -240,7 +253,7 @@ const GrupoMusical = () => {
 
         <motion.div
           className="glass-card p-6 mb-8 flex flex-wrap gap-4"
-          variants={itemVariants}
+          variants={cardVariants}
           data-aos="fade-down"
           data-aos-easing="linear"
           data-aos-duration="1500"
@@ -288,68 +301,35 @@ const GrupoMusical = () => {
         </motion.div>
 
         <motion.div
-          className="glass-card p-6 overflow-x-auto"
-          variants={itemVariants}
-          data-aos="fade-down"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          data-aos="fade-up"
           data-aos-easing="linear"
           data-aos-duration="1500"
         >
-          <table className="w-full">
-            <thead>
-              <tr className="glass-table-header">
-                <th className="py-3 px-6 text-left">Foto</th>
-                <th className="py-3 px-6 text-left">Nombre</th>
-                <th className="py-3 px-6 text-left">Género</th>
-                <th className="py-3 px-6 text-left">Descripción</th>
-                <th className="py-3 px-6 text-left">Plataforma</th>
-                <th className="py-3 px-6 text-left">URL</th>
-                <th className="py-3 px-6 text-center">Estado</th>
-                <th className="py-3 px-6 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence>
-                {filteredGrupos.map((grupo, index) => (
-                  <motion.tr
-                    key={index}
-                    className="border-b border-gray-700 hover:bg-[rgba(0,255,140,0.05)]"
-                    variants={itemVariants}
-                  >
-                    <td className="py-4 px-6">
-                      {grupo.foto ? (
-                        <img
-                          src={typeof grupo.foto === 'string' ? grupo.foto : URL.createObjectURL(grupo.foto)}
-                          className="w-12 h-12 rounded-lg object-cover"
-                          alt="Grupo"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center text-xs">
-                          Sin foto
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-4 px-6">{grupo.nombreGrupo}</td>
-                    <td className="py-4 px-6">{grupo.generoMusical}</td>
-                    <td className="py-4 px-6">{grupo.descripcion}</td>
-                    <td className="py-4 px-6">{grupo.plataforma}</td>
-                    <td className="py-4 px-6">
-                      <a
-                        href={grupo.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#00FF8C] hover:underline"
-                      >
-                        Enlace
-                      </a>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          <AnimatePresence>
+            {filteredGrupos.map((grupo, index) => (
+              <motion.div
+                key={index}
+                className="glass-card p-6 rounded-xl"
+                variants={cardVariants}
+                whileHover="hover"
+                layout
+              >
+                <div className="flex flex-col h-full">
+                  {/* Encabezado de la tarjeta */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-white">{grupo.nombreGrupo}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         grupo.activo ? "bg-green-500" : "bg-red-500"
                       }`}>
                         {grupo.activo ? "Activo" : "Inactivo"}
                       </span>
-                    </td>
-                    <td className="py-4 px-6 flex justify-center gap-2">
+                    </div>
+                    <div className="flex gap-2">
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         className="p-2 bg-blue-500 rounded-full"
@@ -381,12 +361,56 @@ const GrupoMusical = () => {
                           <FiRefreshCcw className="text-white"/>
                         </motion.button>
                       )}
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            </tbody>
-          </table>
+                    </div>
+                  </div>
+
+                  {/* Imagen del grupo */}
+                  <div className="mb-4 rounded-lg overflow-hidden">
+                    {grupo.foto ? (
+                      <img
+                        src={typeof grupo.foto === 'string' ? grupo.foto : URL.createObjectURL(grupo.foto)}
+                        className="w-full h-48 object-cover rounded-lg"
+                        alt={grupo.nombreGrupo}
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center">
+                        <span className="text-gray-400">Sin imagen</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Información del grupo */}
+                  <div className="flex-grow space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-400">Género musical</p>
+                      <p className="font-medium">{grupo.generoMusical}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-400">Descripción</p>
+                      <p className="line-clamp-2">{grupo.descripcion}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-400">Plataforma</p>
+                      <div className="flex items-center gap-2">
+                        <p>{grupo.plataforma}</p>
+                        <a 
+                          href={grupo.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-[#00FF8C] hover:underline flex items-center"
+                        >
+                          <FiExternalLink className="mr-1" />
+                          Visitar
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </motion.div>
 
         <AnimatePresence>
@@ -423,6 +447,7 @@ const GrupoMusical = () => {
     </div>
   );
 };
+
 
 const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title }) => {
   const [previewFotoUrl, setPreviewFotoUrl] = useState(null);
