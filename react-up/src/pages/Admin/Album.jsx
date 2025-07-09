@@ -9,31 +9,32 @@ import {
   FiDownload,
   FiFilter,
   FiPlusCircle,
-  FiSearch
+  FiSearch,
+  FiExternalLink
 } from "react-icons/fi";
-import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
-import xss from "xss";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
 const Album = () => {
   const [albums, setAlbums] = useState([
     {
-      foto: "https://img.freepik.com/vector-gratis/plantilla-portada-album-degradado_23-2150597431.jpg?semt=ais_hybrid&w=740", // URL de imagen de ejemplo
-      titulo: "Álbum 1",
-      artista: "Artista 1",
-      año: 2020,
-      genero: "Rock",
+      foto: "https://img.freepik.com/vector-gratis/plantilla-portada-album-degradado_23-2150597431.jpg",
+      titulo: "Thriller",
+      artista: "Michael Jackson",
+      año: 1982,
+      genero: "Pop",
+      url: "https://open.spotify.com/album/2ANVost0y2y52ema1E9xAZ",
       activo: true,
     },
     {
-      foto: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTqOmmOybtuqzFFGq7T8Jh6Q-fAAnwG5ZOnQ&s", // URL de imagen de ejemplo
-      titulo: "Álbum 2",
-      artista: "Artista 2",
-      año: 2021,
-      genero: "Pop",
+      foto: "https://upload.wikimedia.org/wikipedia/en/2/2e/In_Rainbows_Official_Cover.jpg",
+      titulo: "In Rainbows",
+      artista: "Radiohead",
+      año: 2007,
+      genero: "Rock Alternativo",
+      url: "https://open.spotify.com/album/7eyQXxuf2nGj9d2367Gi5f",
       activo: true,
     },
   ]);
@@ -47,6 +48,7 @@ const Album = () => {
     artista: "",
     año: "",
     genero: "",
+    url: ""
   });
   const [currentAlbum, setCurrentAlbum] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -63,13 +65,14 @@ const Album = () => {
     "Hip-Hop",
     "Reggae",
     "Metal",
+    "Rock Alternativo",
+    "Indie"
   ];
 
   useEffect(() => {
     AOS.init({
-      duration: 1500,
-      easing: 'linear',
-      once: false
+      once: true,
+      mirror: false,
     });
     AOS.refresh();
   }, []);
@@ -79,9 +82,17 @@ const Album = () => {
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
-  const itemVariants = {
+  const cardVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 }
+    },
+    hover: {
+      y: -5,
+      boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)"
+    }
   };
 
   const buttonVariants = {
@@ -89,7 +100,7 @@ const Album = () => {
     tap: { scale: 0.95 }
   };
 
-  const handleSearchChange = (e) => setSearchTerm(xss(e.target.value));
+  const handleSearchChange = (e) => setSearchTerm(e.target.value);
   
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredAlbums);
@@ -125,6 +136,7 @@ const Album = () => {
       artista: "",
       año: "",
       genero: "",
+      url: ""
     });
     setModalCrear(true);
   };
@@ -150,7 +162,7 @@ const Album = () => {
     const { name, value, files } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === "foto" ? files[0] : xss(value)
+      [name]: name === "foto" ? files[0] : value
     }));
   };
 
@@ -160,6 +172,7 @@ const Album = () => {
     if (!formData.artista) newErrors.artista = "Artista obligatorio";
     if (!formData.año) newErrors.año = "Año obligatorio";
     if (!formData.genero) newErrors.genero = "Género obligatorio";
+    if (!formData.url) newErrors.url = "URL obligatoria";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -197,8 +210,8 @@ const Album = () => {
   return (
     <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
       <div className="absolute inset-0 z-0 opacity-20" style={{
-        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), 
-                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 50%),
+                    radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
         backgroundSize: "200% 200%",
         animation: "bg-pan 20s ease infinite",
       }}></div>
@@ -216,62 +229,54 @@ const Album = () => {
           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
           border-radius: 1.5rem;
         }
-        .glass-table-header {
-          background: rgba(0, 255, 140, 0.2);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(0, 255, 140, 0.3);
-        }
       `}</style>
 
       <div className="relative z-10">
-        <motion.div 
-          className="glass-card p-8 mb-8"
+        <motion.div
+          className="glass-card p-8 mb-8 flex justify-between items-center"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120 }}
           data-aos="fade-down"
-          data-aos-easing="linear"
-          data-aos-duration="1500"
         >
-          <h1 className="text-4xl font-bold">Álbumes Musicales</h1>
-          <p className="text-lg opacity-90">Administra tu colección de álbumes</p>
+          <div>
+            <h1 className="text-4xl font-bold">Álbumes Musicales</h1>
+            <p className="text-lg opacity-90">Administra tu colección de álbumes</p>
+          </div>
+
+          <motion.div
+            className="glass-card p-3 rounded-lg flex items-center"
+            variants={cardVariants}
+            data-aos="fade-down"
+          >
+            <nav className="flex items-center space-x-2 text-sm">
+              <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
+                Inicio
+              </Link>
+              <span className="text-gray-500">/</span>
+              <span className="text-white">Álbumes</span>
+            </nav>
+          </motion.div>
         </motion.div>
 
-        <motion.div 
-          className="glass-card p-4 mb-8 flex justify-center"
-          variants={itemVariants}
-          data-aos="fade-down"
-          data-aos-easing="linear"
-          data-aos-duration="1500"
-        >
-          <nav className="flex items-center space-x-2">
-            <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
-              Inicio
-            </Link>
-            <span className="text-gray-500">/</span>
-            <span className="text-white">Álbumes</span>
-          </nav>
-        </motion.div>
-
-        <motion.div 
+        <motion.div
           className="glass-card p-6 mb-8 flex flex-wrap gap-4"
-          variants={itemVariants}
+          variants={cardVariants}
           data-aos="fade-down"
-          data-aos-easing="linear"
-          data-aos-duration="1500"
         >
           <div className="relative flex-grow">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
-            <input 
-              type="text" 
-              placeholder="Buscar álbum..." 
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar álbum..."
               value={searchTerm}
               onChange={handleSearchChange}
               className="w-full pl-10 pr-4 py-2 bg-transparent border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
             />
           </div>
+
           <div className="flex gap-2">
-            <motion.button 
+            <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
               whileHover="hover"
@@ -281,7 +286,8 @@ const Album = () => {
               <FiFilter />
               {filterActive === "all" ? "Todos" : filterActive === "active" ? "Activos" : "Inactivos"}
             </motion.button>
-            <motion.button 
+
+            <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
               whileHover="hover"
@@ -291,7 +297,8 @@ const Album = () => {
               <FiFilter />
               {sortOrder === "asc" ? "Año Asc" : "Año Desc"}
             </motion.button>
-            <motion.button 
+
+            <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
               whileHover="hover"
@@ -300,7 +307,8 @@ const Album = () => {
             >
               <FiDownload /> Exportar
             </motion.button>
-            <motion.button 
+
+            <motion.button
               className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
               whileHover="hover"
@@ -312,71 +320,44 @@ const Album = () => {
           </div>
         </motion.div>
 
-        <motion.div 
-          className="glass-card p-6 overflow-x-auto"
-          variants={itemVariants}
-          data-aos="fade-down"
-          data-aos-easing="linear"
-          data-aos-duration="1500"
+        <motion.div
+          className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          data-aos="fade-up"
         >
-          <table className="w-full">
-            <thead>
-              <tr className="glass-table-header">
-                <th className="py-3 px-6 text-left">Foto</th>
-                <th className="py-3 px-6 text-left">Título</th>
-                <th className="py-3 px-6 text-left">Artista</th>
-                <th className="py-3 px-6 text-left">Año</th>
-                <th className="py-3 px-6 text-left">Género</th>
-                <th className="py-3 px-6 text-center">Estado</th>
-                <th className="py-3 px-6 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence>
-                {filteredAlbums.map((album, index) => (
-                  <motion.tr
-                    key={index}
-                    className="border-b border-gray-700 hover:bg-[rgba(0,255,140,0.05)]"
-                    variants={itemVariants}
-                  >
-                    <td className="py-4 px-6">
-                      {album.foto ? (
-                        <img 
-                          src={typeof album.foto === 'string' ? album.foto : URL.createObjectURL(album.foto)}
-                          className="w-12 h-12 rounded-lg object-cover"
-                          alt="Álbum"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center text-xs">
-                          Sin foto
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-4 px-6">{album.titulo}</td>
-                    <td className="py-4 px-6">{album.artista}</td>
-                    <td className="py-4 px-6">{album.año}</td>
-                    <td className="py-4 px-6">{album.genero}</td>
-                    <td className="py-4 px-6 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        album.activo ? "bg-green-500" : "bg-red-500"
-                      }`}>
+          <AnimatePresence>
+            {filteredAlbums.map((album, index) => (
+              <motion.div
+                key={index}
+                className="glass-card p-6 rounded-t-3xl rounded-br-3xl rounded-bl-xl shadow-md transition-all duration-300 hover:scale-[1.015]"
+                variants={cardVariants}
+                whileHover="hover"
+                layout
+              >
+                <div className="flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-white">{album.titulo}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${album.activo ? "bg-green-500" : "bg-red-500"}`}>
                         {album.activo ? "Activo" : "Inactivo"}
                       </span>
-                    </td>
-                    <td className="py-4 px-6 flex justify-center gap-2">
+                    </div>
+                    <div className="flex gap-2">
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         className="p-2 bg-blue-500 rounded-full"
                         onClick={() => openModalVer(index)}
                       >
-                        <FiEye className="text-white"/>
+                        <FiEye className="text-white" />
                       </motion.button>
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         className="p-2 bg-yellow-500 rounded-full"
                         onClick={() => openModalEditar(index)}
                       >
-                        <FiEdit className="text-white"/>
+                        <FiEdit className="text-white" />
                       </motion.button>
                       {album.activo ? (
                         <motion.button
@@ -384,7 +365,7 @@ const Album = () => {
                           className="p-2 bg-red-500 rounded-full"
                           onClick={() => handleDeleteAlbum(index)}
                         >
-                          <FiTrash2 className="text-white"/>
+                          <FiTrash2 className="text-white" />
                         </motion.button>
                       ) : (
                         <motion.button
@@ -392,17 +373,64 @@ const Album = () => {
                           className="p-2 bg-green-500 rounded-full"
                           onClick={() => handleRestoreAlbum(index)}
                         >
-                          <FiRefreshCcw className="text-white"/>
+                          <FiRefreshCcw className="text-white" />
                         </motion.button>
                       )}
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            </tbody>
-          </table>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 rounded-lg overflow-hidden">
+                    {album.foto ? (
+                      <img
+                        src={typeof album.foto === 'string' ? album.foto : URL.createObjectURL(album.foto)}
+                        className="w-full h-48 object-cover rounded-lg"
+                        alt={album.titulo}
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center">
+                        <span className="text-gray-400">Sin imagen</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-grow space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-400">Artista</p>
+                      <p className="font-medium">{album.artista}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-400">Año</p>
+                      <p className="font-medium">{album.año}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-400">Género</p>
+                      <p className="font-medium">{album.genero}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-400">Enlace</p>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={album.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#00FF8C] hover:underline flex items-center"
+                        >
+                          <FiExternalLink className="mr-1" />
+                          Escuchar
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </motion.div>
 
+        {/* Modales */}
         <AnimatePresence>
           {modalCrear && (
             <ModalFormulario
@@ -415,7 +443,7 @@ const Album = () => {
               title="Agregar Álbum"
             />
           )}
-          
+
           {modalEditar && (
             <ModalFormulario
               formData={formData}
@@ -427,7 +455,7 @@ const Album = () => {
               title="Editar Álbum"
             />
           )}
-          
+
           {modalVer && (
             <ModalVer
               data={albums[currentAlbum]}
@@ -440,6 +468,7 @@ const Album = () => {
   );
 };
 
+// Componente ModalFormulario
 const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors, title }) => {
   const [previewFotoUrl, setPreviewFotoUrl] = useState(null);
 
@@ -470,7 +499,7 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors,
         <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
         
         <div className="mb-4 text-center">
-          <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
+          <label className="block text-sm font-semibold mb-2 text-gray-300">Portada del Álbum</label>
           {previewFotoUrl && (
             <img
               src={previewFotoUrl}
@@ -498,7 +527,8 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors,
           {[
             { label: "Título del Álbum", name: "titulo", type: "text" },
             { label: "Artista", name: "artista", type: "text" },
-            { label: "Año", name: "año", type: "number" },
+            { label: "Año de Lanzamiento", name: "año", type: "number" },
+            { label: "Enlace", name: "url", type: "text" },
           ].map((field) => (
             <div key={field.name}>
               <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
@@ -563,6 +593,7 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors,
   );
 };
 
+// Componente ModalVer
 const ModalVer = ({ data, onClose }) => {
   return (
     <motion.div
@@ -588,7 +619,7 @@ const ModalVer = ({ data, onClose }) => {
               />
             ) : (
               <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
-                <span className="text-gray-400">Sin foto</span>
+                <span className="text-gray-400">Sin portada</span>
               </div>
             )}
           </div>
@@ -598,10 +629,17 @@ const ModalVer = ({ data, onClose }) => {
             { label: "Artista", value: data.artista },
             { label: "Año", value: data.año },
             { label: "Género", value: data.genero },
+            { label: "Enlace", value: data.url },
           ].map((item) => (
             <div key={item.label}>
               <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
-              <p className="text-lg text-white">{item.value}</p>
+              {item.label === "Enlace" ? (
+                <a href={item.value} target="_blank" rel="noopener noreferrer" className="text-[#00FF8C] hover:underline">
+                  {item.value}
+                </a>
+              ) : (
+                <p className="text-lg text-white">{item.value}</p>
+              )}
             </div>
           ))}
 
@@ -628,21 +666,6 @@ const ModalVer = ({ data, onClose }) => {
       </motion.div>
     </motion.div>
   );
-};
-
-ModalFormulario.propTypes = {
-  formData: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onChange: PropTypes.func.isRequired,
-  onSave: PropTypes.func.isRequired,
-  generos: PropTypes.array.isRequired,
-  errors: PropTypes.object.isRequired,
-  title: PropTypes.string.isRequired,
-};
-
-ModalVer.propTypes = {
-  data: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
 };
 
 export default Album;
