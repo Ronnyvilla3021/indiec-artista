@@ -1,40 +1,43 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react"; // Hooks de React para estado y efectos
+import { motion, AnimatePresence } from "framer-motion"; // Para animaciones
 import {
   FiEye,
   FiEdit,
   FiTrash2,
   FiRefreshCcw,
-  FiFilter,
   FiDownload,
+  FiFilter, // Renamed from FiSort (assuming it's used for toggling status filter)
   FiPlusCircle,
   FiSearch,
-} from "react-icons/fi";
-import { Link } from "react-router-dom";
-import * as XLSX from "xlsx";
-import Swal from "sweetalert2";
-import AOS from "aos"; // Importa AOS
-import "aos/dist/aos.css"; // Importa el CSS de AOS
+  FiExternalLink, // Added for external link icon, though not directly used in 'Musica' context, it was in 'GrupoMusical'
+} from "react-icons/fi"; // Iconos de Feather Icons
+import { Link } from "react-router-dom"; // Para navegación
+import * as XLSX from "xlsx"; // Para exportar a Excel
+import Swal from "sweetalert2"; // Librería para alertas/mensajes bonitos
+import AOS from "aos"; // Para animaciones al hacer scroll
+import "aos/dist/aos.css"; // Estilos de AOS
 
 const Musica = () => {
+  // Inicializa animaciones al cargar el componente
   useEffect(() => {
     AOS.init({
-      // Puedes configurar opciones globales aquí
-      duration: 1000, // Duración por defecto de las animaciones en ms
-      once: true, // Si las animaciones deben ocurrir solo una vez
+      once: true, // Las animaciones solo se ejecutan una vez
+      mirror: false, // No se repiten al hacer scroll inverso
     });
-    AOS.refresh(); // Refresca AOS si el contenido cambia dinámicamente
+    AOS.refresh(); // Forza la actualización de animaciones
   }, []);
 
+  // Estado para almacenar la lista de canciones
   const [canciones, setCanciones] = useState([
+    // Datos de ejemplo
     {
-      foto: "https://marketplace.canva.com/EAF2uOSjdVU/1/0/1600w/canva-negro-p%C3%BArpura-brillante-%C3%A1cido-brutalista-general-hip-hop-portada-de-%C3%A1lbum-TuLZGoZHXtA.jpg", // Simulated URL
+      foto: "https://marketplace.canva.com/EAF2uOSjdVU/1/0/1600w/canva-negro-p%C3%BArpura-brillante-%C3%A1cido-brutalista-general-hip-hop-portada-de-%C3%A1lbum-TuLZGoZHXtA.jpg",
       titulo: "Canción 1",
       album: "Álbum 1",
       duracion: "3:45",
       año: 2020,
       genero: "Rock",
-      estado: "Activo",
+      estado: "Activo", // Renamed 'activo' to 'estado' for consistency
     },
     {
       foto: "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/techno-music-album-cover-template-design-54ad7cf78c858c37ba141bb421ac79ee_screen.jpg?ts=1742997697",
@@ -44,6 +47,15 @@ const Musica = () => {
       año: 2021,
       genero: "Pop",
       estado: "Activo",
+    },
+    {
+      foto: "https://www.oldskull.net/wp-content/uploads/2015/01/Rock_Covers-ilustracion-oldskull-15.jpg",
+      titulo: "Another Track",
+      album: "The Best Of",
+      duracion: "3:10",
+      año: 2018,
+      genero: "Jazz",
+      estado: "Inactivo",
     },
   ]);
 
@@ -58,24 +70,58 @@ const Musica = () => {
     "Metal",
   ];
 
-  const [modalCrear, setModalCrear] = useState(false);
-  const [modalEditar, setModalEditar] = useState(false);
-  const [modalVer, setModalVer] = useState(false);
-  const [formData, setFormData] = useState({
-    foto: null,
-    titulo: "",
-    album: "",
-    duracion: "",
-    año: "",
-    genero: "",
-    estado: "Activo",
-  });
-  const [currentCancion, setCurrentCancion] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [errors, setErrors] = useState({});
-  const [sortOrder, setSortOrder] = useState("asc");
+  // Estados para controlar los modales
+  const [modalCrear, setModalCrear] = useState(false); // Modal crear canción
+  const [modalEditar, setModalEditar] = useState(false); // Modal editar canción
+  const [modalVer, setModalVer] = useState(false); // Modal ver detalles
 
-  // Funciones de los modales
+  // Estado para los datos del formulario
+  const [formData, setFormData] = useState({
+    foto: null, // Imagen de la canción/álbum
+    titulo: "", // Título
+    album: "", // Álbum
+    duracion: "", // Duración
+    año: "", // Año
+    genero: "", // Género
+    estado: "Activo", // Estado activo/inactivo
+  });
+
+  // Estados adicionales
+  const [previewFoto, setPreviewFoto] = useState(null); // Preview de imagen para el modal
+  const [currentCancion, setCurrentCancion] = useState(null); // Canción seleccionada
+  const [searchTerm, setSearchTerm] = useState(""); // Término de búsqueda
+  const [filterStatus, setFilterStatus] = useState("all"); // Filtro (todos/activos/inactivos)
+  const [errors, setErrors] = useState({}); // Errores de validación
+  const [sortOrder, setSortOrder] = useState("asc"); // Orden de la tabla (asc/desc)
+
+  // Configuración de animaciones para el contenedor
+  const containerVariants = {
+    hidden: { opacity: 0 }, // Estado inicial invisible
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }, // Aparece con animación escalonada
+  };
+
+  // Animaciones para las tarjetas de canción
+  const cardVariants = {
+    hidden: { y: 20, opacity: 0 }, // Inicia abajo y transparente
+    visible: {
+      y: 0, // Termina en posición normal
+      opacity: 1, // Totalmente visible
+      transition: { type: "spring", stiffness: 100 }, // Con efecto de resorte
+    },
+    hover: {
+      // Efecto al pasar el mouse
+      y: -5, // Se eleva ligeramente
+      boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)", // Sombra verde
+    },
+  };
+
+  // Animaciones para botones
+  const buttonVariants = {
+    hover: { scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }, // Efecto al pasar mouse
+    tap: { scale: 0.95 }, // Efecto al hacer clic
+  };
+
+  // Abre modal para crear nueva canción (resetea el formulario)
   const openModalCrear = () => {
     setFormData({
       foto: null,
@@ -86,149 +132,186 @@ const Musica = () => {
       genero: "",
       estado: "Activo",
     });
+    setPreviewFoto(null);
     setErrors({});
     setModalCrear(true);
   };
 
-  const closeModalCrear = () => setModalCrear(false);
-
+  // Abre modal para editar canción (carga datos existentes)
   const openModalEditar = (index) => {
-    setCurrentCancion(index);
-    setFormData(canciones[index]);
+    setCurrentCancion(index); // Guarda índice de la canción
+    setFormData(canciones[index]); // Carga datos al formulario
+    setPreviewFoto(canciones[index].foto); // Carga la foto para previsualización
     setErrors({});
-    setModalEditar(true);
+    setModalEditar(true); // Abre modal
   };
 
-  const closeModalEditar = () => setModalEditar(false);
-
+  // Abre modal para ver detalles de canción
   const openModalVer = (index) => {
-    setCurrentCancion(index);
-    setModalVer(true);
+    setCurrentCancion(index); // Guarda índice
+    setModalVer(true); // Abre modal
   };
 
-  const closeModalVer = () => setModalVer(false);
+  // Cierra todos los modales
+  const closeModal = () => {
+    setModalCrear(false);
+    setModalEditar(false);
+    setModalVer(false);
+    setErrors({}); // Limpia errores al cerrar
+  };
 
-  // Funciones de manejo de datos
+  // Maneja cambios en los inputs del formulario
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
-    if (name === "foto") {
-      setFormData({ ...formData, foto: files[0] });
+    if (name === "foto" && files.length > 0) {
+      const file = files[0];
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewFoto(objectUrl); // Actualiza la URL para la previsualización
+      setFormData((prev) => ({ ...prev, foto: file })); // Guarda el objeto File
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
+  // Valida los campos del formulario
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.titulo) newErrors.titulo = "El título es obligatorio";
+    if (!formData.album) newErrors.album = "El álbum es obligatorio";
+    if (!formData.duracion) newErrors.duracion = "La duración es obligatoria";
+    if (!formData.año) newErrors.año = "El año es obligatorio";
+    if (isNaN(formData.año) || formData.año.length !== 4)
+      newErrors.año = "El año debe ser un número de 4 dígitos";
+    if (!formData.genero) newErrors.genero = "El género es obligatorio";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0; // Retorna true si no hay errores
+  };
+
+  // Agrega una nueva canción a la lista
   const handleAddCancion = () => {
-    setCanciones([...canciones, { ...formData }]);
+    if (!validateForm()) return; // Valida antes de agregar
+    setCanciones([...canciones, { ...formData, estado: "Activo" }]); // Añade nueva canción
     Swal.fire({
       icon: "success",
       title: "Canción agregada",
       text: `La canción "${formData.titulo}" fue agregada exitosamente.`,
-      background: "#f1f8f9",
-      confirmButtonColor: "#0aa5a9",
+      background: "#1a1a1a",
+      confirmButtonColor: "#00FF8C",
+      color: "#ffffff",
     });
-    closeModalCrear();
+    closeModal(); // Cierra modal
   };
 
+  // Actualiza una canción existente
   const handleUpdateCancion = () => {
-    const updatedCanciones = [...canciones];
-    updatedCanciones[currentCancion] = { ...formData };
-    setCanciones(updatedCanciones);
+    if (!validateForm()) return; // Valida primero
+    const updated = [...canciones]; // Copia el array
+    updated[currentCancion] = { ...formData }; // Actualiza la canción seleccionada
+    setCanciones(updated); // Guarda cambios
     Swal.fire({
       icon: "success",
       title: "Canción actualizada",
       text: `La canción "${formData.titulo}" fue actualizada exitosamente.`,
-      background: "#f1f8f9",
-      confirmButtonColor: "#0aa5a9",
+      background: "#1a1a1a",
+      confirmButtonColor: "#00FF8C",
+      color: "#ffffff",
     });
-    closeModalEditar();
+    closeModal(); // Cierra modal
   };
 
+  // "Elimina" una canción (la marca como inactiva)
   const handleDeleteCancion = (index) => {
-    const updatedCanciones = [...canciones];
-    updatedCanciones[index].estado = "Inactivo";
-    setCanciones(updatedCanciones);
+    const updated = [...canciones]; // Copia array
+    updated[index].estado = "Inactivo"; // Marca como inactiva
+    setCanciones(updated); // Guarda cambios
     Swal.fire({
-      icon: "error",
+      icon: "info",
       title: "Canción desactivada",
       text: "La canción fue marcada como inactiva.",
-      background: "#f1f8f9",
-      confirmButtonColor: "#0aa5a9",
+      background: "#1a1a1a",
+      confirmButtonColor: "#00FF8C",
+      color: "#ffffff",
     });
   };
 
+  // Reactiva una canción (la marca como activa)
   const handleRestoreCancion = (index) => {
-    const updatedCanciones = [...canciones];
-    updatedCanciones[index].estado = "Activo";
-    setCanciones(updatedCanciones);
+    const updated = [...canciones]; // Copia array
+    updated[index].estado = "Activo"; // Marca como activa
+    setCanciones(updated); // Guarda cambios
     Swal.fire({
       icon: "success",
-      title: "Canción restaurada",
-      text: "La canción fue restaurada y está activa nuevamente.",
-      background: "#f1f8f9",
-      confirmButtonColor: "#0aa5a9",
+      title: "Canción activada",
+      text: "La canción fue activada exitosamente.",
+      background: "#1a1a1a",
+      confirmButtonColor: "#00FF8C",
+      color: "#ffffff",
     });
   };
 
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
+  // Maneja cambios en el campo de búsqueda
+  const handleSearchChange = (e) => setSearchTerm(e.target.value);
+
+  // Alterna el filtro de estado (todos/activos/inactivos)
+  const handleFilterStatusChange = () => {
+    setFilterStatus((prev) => {
+      if (prev === "all") return "active";
+      if (prev === "active") return "inactive";
+      return "all";
+    });
   };
 
-  const handleSortByYear = () => {
-    setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"));
-  };
-
+  // Exporta las canciones a Excel
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
-      canciones.map((cancion) => ({
-        Título: cancion.titulo,
-        Álbum: cancion.album,
-        Duración: cancion.duracion,
-        Año: cancion.año,
-        Género: cancion.genero,
-        Estado: cancion.estado,
+      filteredCanciones.map((c) => ({
+        Título: c.titulo,
+        Álbum: c.album,
+        Duración: c.duracion,
+        Año: c.año,
+        Género: c.genero,
+        Estado: c.estado,
       }))
-    );
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Canciones");
-    XLSX.writeFile(workbook, "canciones.xlsx");
+    ); // Crea hoja de cálculo
+    const workbook = XLSX.utils.book_new(); // Crea libro de Excel
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Canciones"); // Añade hoja
+    XLSX.writeFile(workbook, "canciones.xlsx"); // Descarga el archivo
   };
 
+  // Función de ordenamiento por año
+  const handleSortByYear = () =>
+    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+
+  // Filtra y ordena canciones
   const filteredCanciones = canciones
-    .filter((cancion) =>
-      cancion.titulo.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => (sortOrder === "asc" ? a.año - b.año : b.año - a.año));
+    .filter((c) => c.titulo.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((c) => {
+      if (filterStatus === "all") return true;
+      return filterStatus === "active" ? c.estado === "Activo" : c.estado === "Inactivo";
+    })
+    .sort((a, b) => {
+      if (sortOrder === "asc") {
+        return a.año - b.año;
+      } else {
+        return b.año - a.año;
+      }
+    });
 
-  // Variantes de animación
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 },
-  };
-
-  const buttonVariants = {
-    hover: { scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" },
-    tap: { scale: 0.95 },
-  };
-
+  // Renderizado del componente
   return (
     <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
-      {/* Fondo animado */}
+      {/* Fondo animado con gradientes */}
       <div
         className="absolute inset-0 z-0 opacity-20"
         style={{
-          background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%),
-                        radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+          background: `radial-gradient(circle at top left, #39FF14 0%, transparent 50%),
+                         radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
           backgroundSize: "200% 200%",
           animation: "bg-pan 20s ease infinite",
         }}
       ></div>
 
+      {/* Estilos CSS-in-JS para el fondo animado y efecto "glass" */}
       <style jsx>{`
         @keyframes bg-pan {
           0% {
@@ -248,73 +331,52 @@ const Musica = () => {
           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
           border-radius: 1.5rem;
         }
-        .glass-table-header {
-          background: rgba(0, 255, 140, 0.2);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(0, 255, 140, 0.3);
-        }
-        .glass-table-row {
-          background: rgba(255, 255, 255, 0.03);
-        }
-        .glass-table-row:hover {
-          background: rgba(255, 255, 255, 0.08);
-        }
       `}</style>
 
+      {/* Contenido principal */}
       <div className="relative z-10">
-        {/* Encabezado */}
+        {/* Encabezado con animación - ahora con flex para alinear título y breadcrumbs */}
         <motion.div
-          className="glass-card p-8 mb-8"
+          className="glass-card p-8 mb-8 flex justify-between items-center"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120 }}
-          data-aos="fade-down" // Animación AOS aplicada aquí
+          data-aos="fade-down"
           data-aos-easing="linear"
           data-aos-duration="1500"
         >
-          <h1 className="text-4xl font-bold">Gestión de Música</h1>
-          <p className="text-lg opacity-90">Administra tu colección musical</p>
+          <div>
+            <h1 className="text-4xl font-bold">Canciones</h1>
+            <p className="text-lg opacity-90">Administra tus canciones</p>
+          </div>
+
+          {/* Migas de pan (breadcrumbs) - ahora en la derecha y más compacto */}
+          <motion.div
+            className="glass-card p-3 rounded-lg flex items-center"
+            variants={cardVariants}
+            data-aos="fade-down"
+            data-aos-easing="linear"
+            data-aos-duration="1500"
+          >
+            <nav className="flex items-center space-x-2 text-sm">
+              <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
+                Inicio
+              </Link>
+              <span className="text-gray-500">/</span>
+              <span className="text-white">Canciones</span>
+            </nav>
+          </motion.div>
         </motion.div>
 
-        {/* Migas de pan */}
-
-        <motion.div
-          className="glass-card p-4 mb-8 flex justify-center"
-          variants={itemVariants}
-          data-aos="fade-down" // Animación AOS aplicada aquí
-          data-aos-easing="linear"
-          data-aos-duration="1500"
-        >
-          <nav aria-label="breadcrumb">
-            <ol className="flex items-center space-x-2">
-              <li>
-                <Link
-                  to="/dashboard"
-                  className="text-[#00FF8C] px-4 py-2 rounded-lg transition duration-300 hover:bg-[rgba(0,255,140,0.15)] hover:text-white no-underline font-semibold"
-                >
-                  Inicio
-                </Link>
-              </li>
-              <li>
-                <span className="text-gray-500 px-2">/</span>
-              </li>
-              <li>
-                <span className="text-white px-4 py-2 rounded-lg font-semibold">
-                  Música
-                </span>
-              </li>
-            </ol>
-          </nav>
-        </motion.div>
-
-        {/* Controles */}
+        {/* Barra de búsqueda y acciones */}
         <motion.div
           className="glass-card p-6 mb-8 flex flex-wrap gap-4"
-          variants={itemVariants}
-          data-aos="fade-down" // Animación AOS aplicada aquí
+          variants={cardVariants}
+          data-aos="fade-down"
           data-aos-easing="linear"
           data-aos-duration="1500"
         >
+          {/* Input de búsqueda con icono */}
           <div className="relative flex-grow">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -325,16 +387,37 @@ const Musica = () => {
               className="w-full pl-10 pr-4 py-2 bg-transparent border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
             />
           </div>
-          <div className="flex gap-2">
+
+          {/* Botones de acciones */}
+          <div className="flex gap-2 flex-wrap">
+            {/* Botón de filtro (alterna entre todos/activos/inactivos) */}
             <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
+              onClick={handleFilterStatusChange}
+            >
+              <FiFilter />
+              {filterStatus === "all"
+                ? "Todos"
+                : filterStatus === "active"
+                ? "Activos"
+                : "Inactivos"}
+            </motion.button>
+
+            {/* Botón para ordenar por año */}
+            <motion.button
+              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center gap-2"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
               onClick={handleSortByYear}
             >
-              <FiFilter /> {sortOrder === "asc" ? "Año ↑" : "Año ↓"}
+              <FiFilter /> Año ({sortOrder === "asc" ? "Asc" : "Desc"})
             </motion.button>
+
+            {/* Botón para exportar a Excel */}
             <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
@@ -344,6 +427,8 @@ const Musica = () => {
             >
               <FiDownload /> Exportar
             </motion.button>
+
+            {/* Botón para agregar nueva canción */}
             <motion.button
               className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2"
               variants={buttonVariants}
@@ -356,65 +441,45 @@ const Musica = () => {
           </div>
         </motion.div>
 
-        {/* Tabla */}
+        {/* Lista de canciones */}
         <motion.div
-          className="glass-card p-6 overflow-x-auto"
-          variants={itemVariants}
-          data-aos="fade-down" // Animación AOS aplicada aquí
+          className="grid gap-6"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", display: "grid" }}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          data-aos="fade-up"
           data-aos-easing="linear"
           data-aos-duration="1500"
         >
-          <table className="w-full">
-            <thead>
-              <tr className="glass-table-header">
-                <th className="py-3 px-6 text-left">Foto</th>
-                <th className="py-3 px-6 text-left">Título</th>
-                <th className="py-3 px-6 text-left">Álbum</th>
-                <th className="py-3 px-6 text-left">Duración</th>
-                <th className="py-3 px-6 text-left">Año</th>
-                <th className="py-3 px-6 text-left">Género</th>
-                <th className="py-3 px-6 text-center">Estado</th>
-                <th className="py-3 px-6 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence>
-                {filteredCanciones.map((cancion, index) => (
-                  <motion.tr
-                    key={index}
-                    className="glass-table-row border-b border-gray-700"
-                    variants={itemVariants}
-                  >
-                    <td className="py-4 px-6">
-                      {cancion.foto ? (
-                        <img
-                          src={cancion.foto}
-                          className="w-12 h-12 rounded-lg object-cover"
-                          alt="Portada"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center text-xs">
-                          Sin foto
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-4 px-6">{cancion.titulo}</td>
-                    <td className="py-4 px-6">{cancion.album}</td>
-                    <td className="py-4 px-6">{cancion.duracion}</td>
-                    <td className="py-4 px-6">{cancion.año}</td>
-                    <td className="py-4 px-6">{cancion.genero}</td>
-                    <td className="py-4 px-6 text-center">
+          {/* Componente para animar entradas/salidas */}
+          <AnimatePresence>
+            {/* Mapea cada canción filtrada a una tarjeta */}
+            {filteredCanciones.map((cancion, index) => (
+              <motion.div
+                key={index}
+                className="glass-card p-6 rounded-t-3xl rounded-br-3xl rounded-bl-xl shadow-md transition-all duration-300 hover:scale-[1.015]"
+                variants={cardVariants}
+                whileHover="hover"
+                layout
+              >
+                <div className="flex flex-col h-full">
+                  {/* Encabezado de la tarjeta con nombre y acciones */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-white">{cancion.titulo}</h3>
+                      {/* Badge de estado (activo/inactivo) */}
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          cancion.estado === "Activo"
-                            ? "bg-green-500 text-white"
-                            : "bg-red-500 text-white"
+                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          cancion.estado === "Activo" ? "bg-green-500" : "bg-red-500"
                         }`}
                       >
                         {cancion.estado}
                       </span>
-                    </td>
-                    <td className="py-4 px-6 flex justify-center gap-2">
+                    </div>
+                    {/* Botones de acciones para cada canción */}
+                    <div className="flex gap-2">
+                      {/* Botón para ver detalles */}
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         className="p-2 bg-blue-500 rounded-full"
@@ -422,6 +487,7 @@ const Musica = () => {
                       >
                         <FiEye className="text-white" />
                       </motion.button>
+                      {/* Botón para editar */}
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         className="p-2 bg-yellow-500 rounded-full"
@@ -429,6 +495,7 @@ const Musica = () => {
                       >
                         <FiEdit className="text-white" />
                       </motion.button>
+                      {/* Botón para eliminar o reactivar según estado */}
                       {cancion.estado === "Activo" ? (
                         <motion.button
                           whileTap={{ scale: 0.9 }}
@@ -446,43 +513,89 @@ const Musica = () => {
                           <FiRefreshCcw className="text-white" />
                         </motion.button>
                       )}
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            </tbody>
-          </table>
+                    </div>
+                  </div>
+
+                  {/* Imagen del álbum/canción */}
+                  <div className="mb-4 rounded-lg overflow-hidden">
+                    {cancion.foto ? (
+                      <img
+                        src={typeof cancion.foto === "string" ? cancion.foto : URL.createObjectURL(cancion.foto)}
+                        className="w-full h-48 object-cover rounded-lg"
+                        alt={cancion.titulo}
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center">
+                        <span className="text-gray-400">Sin imagen</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Información de la canción */}
+                  <div className="flex-grow space-y-3">
+                    {/* Álbum */}
+                    <div>
+                      <p className="text-sm text-gray-400">Álbum</p>
+                      <p className="font-medium">{cancion.album}</p>
+                    </div>
+
+                    {/* Duración */}
+                    <div>
+                      <p className="text-sm text-gray-400">Duración</p>
+                      <p className="font-medium">{cancion.duracion}</p>
+                    </div>
+
+                    {/* Año y Género */}
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm text-gray-400">Año</p>
+                        <p className="font-medium">{cancion.año}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Género</p>
+                        <p className="font-medium">{cancion.genero}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </motion.div>
 
-        {/* Modales */}
+        {/* Modales (se muestran condicionalmente) */}
         <AnimatePresence>
+          {/* Modal para crear nueva canción */}
           {modalCrear && (
             <ModalFormulario
               formData={formData}
-              onClose={closeModalCrear}
+              onClose={closeModal}
               onChange={handleInputChange}
               onSave={handleAddCancion}
-              generos={generos}
+              errors={errors}
               title="Agregar Canción"
+              previewFotoUrl={previewFoto}
+              generos={generos}
             />
           )}
 
+          {/* Modal para editar canción existente */}
           {modalEditar && (
             <ModalFormulario
               formData={formData}
-              onClose={closeModalEditar}
+              onClose={closeModal}
               onChange={handleInputChange}
               onSave={handleUpdateCancion}
-              generos={generos}
+              errors={errors}
               title="Editar Canción"
+              previewFotoUrl={previewFoto}
+              generos={generos}
             />
           )}
 
+          {/* Modal para ver detalles de canción */}
           {modalVer && (
-            <ModalVer
-              cancion={canciones[currentCancion]}
-              onClose={closeModalVer}
-            />
+            <ModalVer data={canciones[currentCancion]} onClose={closeModal} />
           )}
         </AnimatePresence>
       </div>
@@ -490,180 +603,197 @@ const Musica = () => {
   );
 };
 
-// Componente ModalFormulario
-const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, title }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
-  >
+// Componente para el modal de formulario (crear/editar)
+const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, previewFotoUrl, generos }) => {
+  return (
     <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
     >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">
-        {title}
-      </h2>
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+      >
+        <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
 
-      <div className="mb-4 text-center">
-        <label className="block text-sm font-semibold mb-2 text-gray-300">
-          Imagen
-        </label>
-        <label
-          htmlFor="foto"
-          className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
-        >
-          Subir Imagen
-          <input
-            id="foto"
-            type="file"
-            name="foto"
-            onChange={onChange}
-            className="hidden"
-          />
-        </label>
-      </div>
-
-      <div className="space-y-4">
-        {[
-          { label: "Título", name: "titulo", type: "text" },
-          { label: "Álbum", name: "album", type: "text" },
-          { label: "Duración", name: "duracion", type: "text" },
-          { label: "Año", name: "año", type: "number" },
-        ].map((field) => (
-          <div key={field.name}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">
-              {field.label}
-            </label>
-            <input
-              type={field.type}
-              name={field.name}
-              value={formData[field.name]}
-              onChange={onChange}
-              className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
-            />
-          </div>
-        ))}
-
-        <div>
-          <label className="block text-sm font-semibold mb-1 text-gray-300">
-            Género
-          </label>
-          <select
-            name="genero"
-            value={formData.genero}
-            onChange={onChange}
-            className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
-          >
-            <option value="">Selecciona un género</option>
-            {generos.map((genero) => (
-              <option key={genero} value={genero}>
-                {genero}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="flex justify-end space-x-3 mt-8">
-        <motion.button
-          onClick={onClose}
-          className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Cancelar
-        </motion.button>
-        <motion.button
-          onClick={onSave}
-          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Guardar
-        </motion.button>
-      </div>
-    </motion.div>
-  </motion.div>
-);
-
-// Componente ModalVer
-const ModalVer = ({ cancion, onClose }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
-  >
-    <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
-    >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">
-        Detalles de la Canción
-      </h2>
-
-      <div className="space-y-4">
-        <div className="text-center">
-          {cancion.foto ? (
+        {/* Sección para subir imagen */}
+        <div className="mb-4 text-center">
+          <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen de Portada</label>
+          {/* Muestra previsualización si existe */}
+          {previewFotoUrl && (
             <img
-              src={cancion.foto}
-              alt="Portada"
-              className="w-32 h-32 rounded-lg object-cover mx-auto"
+              src={previewFotoUrl}
+              alt="Vista previa"
+              className="w-32 h-32 rounded-lg object-cover mx-auto mb-4"
             />
-          ) : (
-            <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
-              <span className="text-gray-400">Sin foto</span>
-            </div>
           )}
-        </div>
-
-        {[
-          { label: "Título", value: cancion.titulo },
-          { label: "Álbum", value: cancion.album },
-          { label: "Duración", value: cancion.duracion },
-          { label: "Año", value: cancion.año },
-          { label: "Género", value: cancion.genero },
-        ].map((item) => (
-          <div key={item.label}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">
-              {item.label}
-            </label>
-            <p className="text-lg text-white">{item.value}</p>
-          </div>
-        ))}
-
-        <div>
-          <label className="block text-sm font-semibold mb-1 text-gray-300">
-            Estado
-          </label>
-          <span
-            className={`px-4 py-2 rounded-full text-sm font-bold ${
-              cancion.estado === "Activo"
-                ? "bg-green-500 text-white"
-                : "bg-red-500 text-white"
-            }`}
+          {/* Input para subir imagen (oculto) con botón personalizado */}
+          <label
+            htmlFor="foto"
+            className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
           >
-            {cancion.estado}
-          </span>
+            {previewFotoUrl ? "Cambiar Imagen" : "Subir Imagen"}
+            <input
+              id="foto"
+              type="file"
+              name="foto"
+              onChange={onChange}
+              className="hidden"
+              accept="image/*"
+            />
+          </label>
         </div>
-      </div>
 
-      <div className="flex justify-end mt-8">
-        <motion.button
-          onClick={onClose}
-          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Cerrar
-        </motion.button>
-      </div>
+        {/* Campos del formulario */}
+        <div className="space-y-4">
+          {[
+            { label: "Título", name: "titulo", type: "text" },
+            { label: "Álbum", name: "album", type: "text" },
+            { label: "Duración (ej. 3:45)", name: "duracion", type: "text" },
+            { label: "Año", name: "año", type: "number" },
+          ].map((field) => (
+            <div key={field.name}>
+              <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
+              <input
+                type={field.type}
+                name={field.name}
+                value={formData[field.name]}
+                onChange={onChange}
+                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
+                  errors[field.name] ? "border-red-500" : ""
+                }`}
+              />
+              {/* Muestra error de validación si existe */}
+              {errors[field.name] && (
+                <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+              )}
+            </div>
+          ))}
+
+          {/* Selector de Género */}
+          <div>
+            <label className="block text-sm font-semibold mb-1 text-gray-300">Género</label>
+            <select
+              name="genero"
+              value={formData.genero}
+              onChange={onChange}
+              className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
+                errors.genero ? "border-red-500" : ""
+              }`}
+            >
+              <option value="">Selecciona un género</option>
+              {generos.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            {errors.genero && <p className="text-red-500 text-sm mt-1">{errors.genero}</p>}
+          </div>
+        </div>
+
+        {/* Botones del modal */}
+        <div className="flex justify-end space-x-3 mt-8">
+          {/* Botón para cancelar */}
+          <motion.button
+            onClick={onClose}
+            className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Cancelar
+          </motion.button>
+          {/* Botón para guardar */}
+          <motion.button
+            onClick={onSave}
+            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Guardar
+          </motion.button>
+        </div>
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
+  );
+};
+
+// Componente para el modal de visualización de detalles
+const ModalVer = ({ data, onClose }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+    >
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+      >
+        <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles de la Canción</h2>
+
+        <div className="space-y-4">
+          {/* Imagen de la canción */}
+          <div className="text-center">
+            {data.foto ? (
+              <img
+                src={typeof data.foto === "string" ? data.foto : URL.createObjectURL(data.foto)}
+                alt="Canción"
+                className="w-32 h-32 rounded-lg object-cover mx-auto"
+              />
+            ) : (
+              <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
+                <span className="text-gray-400">Sin foto</span>
+              </div>
+            )}
+          </div>
+
+          {/* Muestra todos los datos de la canción */}
+          {[
+            { label: "Título", value: data.titulo },
+            { label: "Álbum", value: data.album },
+            { label: "Duración", value: data.duracion },
+            { label: "Año", value: data.año },
+            { label: "Género", value: data.genero },
+          ].map((item) => (
+            <div key={item.label}>
+              <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
+              <p className="text-lg text-white">{item.value}</p>
+            </div>
+          ))}
+
+          {/* Estado de la canción */}
+          <div>
+            <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
+            <span
+              className={`px-4 py-2 rounded-full text-sm font-bold ${
+                data.estado === "Activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+              }`}
+            >
+              {data.estado}
+            </span>
+          </div>
+        </div>
+
+        {/* Botón para cerrar el modal */}
+        <div className="flex justify-end mt-8">
+          <motion.button
+            onClick={onClose}
+            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Cerrar
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 export default Musica;
