@@ -20,7 +20,7 @@ import 'aos/dist/aos.css';
 const Album = () => {
   const [albums, setAlbums] = useState([
     {
-      foto: "https://img.freepik.com/vector-gratis/plantilla-portada-album-degradado_23-2150597431.jpg",
+      foto: "https://i.etsystatic.com/9330688/r/il/dfd838/1700622434/il_1080xN.1700622434_1r5l.jpg",
       titulo: "Thriller",
       artista: "Michael Jackson",
       año: 1982,
@@ -29,11 +29,20 @@ const Album = () => {
       activo: true,
     },
     {
-      foto: "https://upload.wikimedia.org/wikipedia/en/2/2e/In_Rainbows_Official_Cover.jpg",
-      titulo: "In Rainbows",
-      artista: "Radiohead",
-      año: 2007,
-      genero: "Rock Alternativo",
+      foto: "https://cdn1.eldia.com/072021/1627255515074.jpg",
+      titulo: "Back in Black",
+      artista: "AC/DC",
+      año: 1980,
+      genero: "Rock",
+      url: "https://open.spotify.com/album/7eyQXxuf2nGj9d2367Gi5f",
+      activo: true,
+    },
+    {
+      foto: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRv3Xi_it_gxC07Nf2XcVbpzpD_BdqPYIIzLb9x_Og5MRWhw7VxafciBiDVus7LoTR59kQ&usqp=CAU",
+      titulo: " Master of Puppets",
+      artista: "Metallica",
+      año: 1990,
+      genero: "Rock",
       url: "https://open.spotify.com/album/7eyQXxuf2nGj9d2367Gi5f",
       activo: true,
     },

@@ -9,7 +9,9 @@ import {
   FiFilter,
   FiDownload,
   FiPlusCircle,
-  FiSearch
+  FiSearch,
+  FiArrowUp, // Icon for ascending sort
+  FiArrowDown // Icon for descending sort
 } from "react-icons/fi";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
@@ -21,60 +23,51 @@ import 'aos/dist/aos.css';
 const Eventos = () => {
   useEffect(() => {
     AOS.init({
-      duration: 1500, // Duración de 1500ms
-      easing: 'linear',
-      once: true
+      once: true, // Animations only run once
+      mirror: false, // Do not repeat on reverse scroll
     });
+    AOS.refresh(); // Force refresh of animations
   }, []);
 
   const [eventos, setEventos] = useState([
     {
+      id: 'e1', // Unique ID for each event
       foto: "https://edit.org/img/blog/n/4s2-1024-plantilla-imagen-portada-evento-facebook.webp", // URL de imagen de ejemplo
-      nombreEvento: "Concierto de Rock Extremo",
-      generoMusical: "Rock/Metal",
-      descripcion: "¡Prepárense para una noche de puro poder! Bandas locales destrozando el escenario con los riffs más pesados y una energía inigualable. ¡El headbanging está garantizado!",
-      ubicacion: "Auditorio A, Centro de Convenciones El Volcán",
+      nombreEvento: "Concierto de Rock",
+      generoMusical: "Rock",
+      descripcion: "Un concierto explosivo con las mejores bandas de rock locales y nacionales. ¡No te lo pierdas!",
+      ubicacion: "Auditorio Principal, Centro de Convenciones",
       fecha: "2025-02-10",
-      contacto: "rockextremo@example.com",
-      capacidad: 1200,
-      artistas: "Bandas locales: La Furia Eléctrica, Ruido Cero, Almas Oxidadas",
+      contacto: "info@conciertorock.com / 1234567890",
+      capacidad: 500,
+      artistas: "Banda Sonora, Los Rítmicos, Ecos del Tiempo",
       estado: true,
     },
     {
+      id: 'e2', // Unique ID
       foto: "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/fb-cover-for-the-party-festival-design-template-e557f7cec2750b6e8995031080f35477_screen.jpg?ts=1566566381", // URL de imagen de ejemplo
-      nombreEvento: "Festival de Jazz Nocturno",
-      generoMusical: "Jazz Fusión",
-      descripcion: "Sumérgete en la elegancia del jazz bajo las estrellas. Artistas de talla mundial te transportarán con melodías improvisadas y ritmos envolventes. Una experiencia única para los amantes del buen jazz.",
-      ubicacion: "Teatro B, Centro Cultural Metropolitano Solaris",
+      nombreEvento: "Festival de Jazz Internacional",
+      generoMusical: "Jazz",
+      descripcion: "Una noche elegante de jazz con artistas de renombre mundial. Disfruta de la música en un ambiente único.",
+      ubicacion: "Teatro Nacional Sucre",
       fecha: "2025-03-20",
-      contacto: "jazzsolaris@example.com",
-      capacidad: 450,
-      artistas: "Artistas internacionales: El Cuarteto Lunar, Sofía Valdés (voz)",
+      contacto: "jazzfest@example.com / 0987654321",
+      capacidad: 300,
+      artistas: "Cuarteto Azul, Sonya Smith Trio, Big Band Jazz Fusion",
       estado: true,
     },
     {
-      foto: "https://marketplace.canva.com/EAFi9oE5Pek/1/0/1600w/canva-fiesta-de-cumplea%C3%B1os-dj-en-la-ciudad-portada-de-facebook-Y0j1-N24k-s.jpg",
-      nombreEvento: "Explosión Electrónica 2025",
-      generoMusical: "Electrónica/Techno",
-      descripcion: "La noche vibrará al ritmo de los beats más innovadores. Una experiencia visual y sonora con los DJs más vanguardistas que te harán bailar hasta el amanecer.",
-      ubicacion: "Club Nocturno The Matrix",
+      id: 'e3', // Unique ID
+      foto: "https://t3.ftcdn.net/jpg/03/61/47/43/360_F_361474343_gC8Q1vUu8S9PzV4K0L9Lw8FzS7K2y3rD.jpg",
+      nombreEvento: "Exposición de Arte Moderno",
+      generoMusical: "Arte", // Considerar si 'generoMusical' es el campo adecuado para esto o si se necesita uno nuevo
+      descripcion: "Descubre las últimas tendencias en arte moderno de artistas emergentes y consolidados.",
+      ubicacion: "Galería de la Ciudad",
       fecha: "2025-04-05",
-      contacto: "thematrixbeats@example.com",
-      capacidad: 900,
-      artistas: "DJs: DJ Cypher, Synthia Groove, Beats Quantum",
-      estado: false, // Ejemplo de evento inactivo
-    },
-     {
-      foto: "https://i.pinimg.com/736x/87/42/1d/87421d5a7101859c0490b76e1a498522.jpg",
-      nombreEvento: "Noche de Comedia Stand-Up",
-      generoMusical: "Comedia",
-      descripcion: "¡Risas garantizadas! Los mejores comediantes del circuito local e internacional se unen para una noche de humor irreverente y carcajadas sin fin.",
-      ubicacion: "Teatro Capitol",
-      fecha: "2025-05-15",
-      contacto: "comedianight@example.com",
-      capacidad: 350,
-      artistas: "Comediantes: Pepito Risas, La Chistosa, Monologuista Incógnito",
-      estado: true,
+      contacto: "arteurbano@galeria.com / 1122334455",
+      capacidad: 150,
+      artistas: "Varios artistas contemporáneos",
+      estado: false, // Example of inactive event
     },
   ]);
 
@@ -92,36 +85,47 @@ const Eventos = () => {
     capacidad: "",
     artistas: "",
   });
-  const [currentEvento, setCurrentEvento] = useState(null);
+  const [currentEvento, setCurrentEvento] = useState(null); // Stores the full event object
   const [searchTerm, setSearchTerm] = useState("");
   const [filterActive, setFilterActive] = useState("all");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [sortOrder, setSortOrder] = useState("asc"); // For sorting by date
   const [errors, setErrors] = useState({});
+
+  const generosMusicales = [
+    "Rock", "Pop", "Jazz", "Electrónica", "Hip-Hop", "Reggae", "Metal",
+    "Blues", "Country", "Folk", "R&B", "Soul", "Funk", "Latina", "Reggaeton",
+    "Clásica", "Alternativo", "Indie", "Cumbia", "Salsa", "Merengue", "Bachata",
+    "World Music", "Otros"
+  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
-  const itemVariants = {
+  const cardVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 }
+    },
+    hover: {
+      y: -5,
+      boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)"
+    }
   };
 
   const buttonVariants = {
-    hover: { scale: 1.05, boxShadow: "0 0 20px rgba(0, 255, 140, 0.7), 0 0 35px rgba(0, 255, 140, 0.5)" }, // Brillo más intenso
+    hover: { scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" },
     tap: { scale: 0.95 }
-  };
-
-  const iconButtonVariants = {
-    hover: { scale: 1.2, color: "#39FF14", filter: "drop-shadow(0 0 8px rgba(57, 255, 20, 0.8))" }, // Icono más grande y con brillo
-    tap: { scale: 0.8 }
   };
 
   const handleSearchChange = (e) => setSearchTerm(xss(e.target.value));
 
   const handleExportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredEventos);
+    const dataToExport = filteredEventos.map(({ foto, ...rest }) => rest); // Exclude foto for Excel
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Eventos");
     XLSX.writeFile(workbook, "eventos.xlsx");
@@ -167,23 +171,19 @@ const Eventos = () => {
       capacidad: "",
       artistas: "",
     });
-    setErrors({}); // Limpiar errores al abrir el modal de creación
+    setErrors({});
     setModalCrear(true);
   };
 
-  const openModalEditar = (index) => {
-    setCurrentEvento(index);
-    // Asegurarse de que 'foto' sea URL de cadena o objeto File al editar
-    setFormData({
-      ...eventos[index],
-      foto: eventos[index].foto || null // Manejar casos donde 'foto' podría ser indefinido
-    });
-    setErrors({}); // Limpiar errores al abrir el modal de edición
+  const openModalEditar = (eventoToEdit) => {
+    setCurrentEvento(eventoToEdit);
+    setFormData(eventoToEdit);
+    setErrors({});
     setModalEditar(true);
   };
 
-  const openModalVer = (index) => {
-    setCurrentEvento(index);
+  const openModalVer = (eventoToView) => {
+    setCurrentEvento(eventoToView);
     setModalVer(true);
   };
 
@@ -191,7 +191,8 @@ const Eventos = () => {
     setModalCrear(false);
     setModalEditar(false);
     setModalVer(false);
-    setErrors({}); // Limpiar errores cuando cualquier modal se cierra
+    setCurrentEvento(null);
+    setErrors({});
   };
 
   const handleInputChange = (e) => {
@@ -200,90 +201,82 @@ const Eventos = () => {
       ...prev,
       [name]: name === "foto" ? files[0] : xss(value)
     }));
-    // Limpiar el error para el campo específico mientras se escribe
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
-    }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.nombreEvento.trim()) newErrors.nombreEvento = "El nombre del evento es obligatorio.";
-    if (!formData.generoMusical.trim()) newErrors.generoMusical = "El género musical es obligatorio.";
-    if (!formData.descripcion.trim()) newErrors.descripcion = "La descripción es obligatoria.";
-    if (!formData.ubicacion.trim()) newErrors.ubicacion = "La ubicación es obligatoria.";
-    if (!formData.fecha) newErrors.fecha = "La fecha es obligatoria.";
-    if (!formData.contacto.trim()) newErrors.contacto = "El contacto es obligatorio.";
-    if (!formData.capacidad || formData.capacidad <= 0) newErrors.capacidad = "La capacidad debe ser un número positivo.";
-    if (!formData.artistas.trim()) newErrors.artistas = "El campo de artistas es obligatorio.";
+    if (!formData.nombreEvento) newErrors.nombreEvento = "Nombre del evento es obligatorio.";
+    if (!formData.generoMusical) newErrors.generoMusical = "Género musical es obligatorio.";
+    if (!formData.descripcion) newErrors.descripcion = "Descripción es obligatoria.";
+    if (!formData.ubicacion) newErrors.ubicacion = "Ubicación es obligatoria.";
+    if (!formData.fecha) newErrors.fecha = "Fecha es obligatoria.";
+    if (!formData.contacto) newErrors.contacto = "Contacto es obligatorio.";
+    if (!formData.capacidad || isNaN(formData.capacidad) || formData.capacidad <= 0) {
+      newErrors.capacidad = "Capacidad debe ser un número positivo.";
+    }
+    if (!formData.artistas) newErrors.artistas = "Artistas son obligatorios.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleAddEvento = () => {
-    if (!validateForm()) {
-      Swal.fire("Error", "Por favor, complete todos los campos requeridos.", "error");
-      return;
-    }
-    setEventos([...eventos, { ...formData, estado: true }]);
-    Swal.fire("¡Éxito!", "Evento agregado correctamente.", "success");
+    if (!validateForm()) return;
+    setEventos([...eventos, { ...formData, id: Date.now().toString(), estado: true }]);
+    Swal.fire("Éxito", "Evento agregado exitosamente", "success");
     closeModal();
   };
 
   const handleUpdateEvento = () => {
-    if (!validateForm()) {
-      Swal.fire("Error", "Por favor, complete todos los campos requeridos.", "error");
-      return;
-    }
-    const updated = [...eventos];
-    updated[currentEvento] = formData;
-    setEventos(updated);
-    Swal.fire("¡Éxito!", "Evento actualizado correctamente.", "success");
+    if (!validateForm()) return;
+    setEventos(prevEventos => prevEventos.map(evento =>
+      evento.id === currentEvento.id ? { ...formData, id: currentEvento.id } : evento
+    ));
+    Swal.fire("Éxito", "Evento actualizado exitosamente", "success");
     closeModal();
   };
 
-  const handleDeleteEvento = (index) => {
+  const handleDeleteEvento = (eventoToDelete) => {
     Swal.fire({
       title: '¿Estás seguro?',
-      text: "¡No podrás revertir esta acción!",
+      text: `¡Estás a punto de desactivar "${eventoToDelete.nombreEvento}"! No podrás revertir esto directamente desde aquí.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, ¡desactivar!',
+      confirmButtonText: 'Sí, desactívalo',
       cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
-        const updated = [...eventos];
-        updated[index].estado = false;
-        setEventos(updated);
+        setEventos(prevEventos => prevEventos.map(evento =>
+          evento.id === eventoToDelete.id ? { ...evento, estado: false } : evento
+        ));
         Swal.fire(
           'Desactivado!',
-          'El evento ha sido desactivado.',
-          'info'
+          `El evento "${eventoToDelete.nombreEvento}" ha sido desactivado.`,
+          'success'
         );
       }
     });
   };
 
-  const handleRestoreEvento = (index) => {
+  const handleRestoreEvento = (eventoToRestore) => {
     Swal.fire({
-      title: '¿Activar evento?',
-      text: "¿Quieres activar este evento nuevamente?",
-      icon: 'question',
+      title: '¿Quieres activar este evento?',
+      text: `El evento "${eventoToRestore.nombreEvento}" estará visible de nuevo.`,
+      icon: 'info',
       showCancelButton: true,
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, ¡activar!',
+      confirmButtonText: 'Sí, actívalo',
       cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
-        const updated = [...eventos];
-        updated[index].estado = true;
-        setEventos(updated);
+        setEventos(prevEventos => prevEventos.map(evento =>
+          evento.id === eventoToRestore.id ? { ...evento, estado: true } : evento
+        ));
         Swal.fire(
           'Activado!',
-          'El evento ha sido activado.',
+          `El evento "${eventoToRestore.nombreEvento}" ha sido activado.`,
           'success'
         );
       }
@@ -291,19 +284,19 @@ const Eventos = () => {
   };
 
   return (
-    <div
-      className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden"
-      data-aos="fade-down"
-      data-aos-easing="linear"
-      data-aos-duration="1500"
-    >
+    <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden font-inter">
       <div className="absolute inset-0 z-0 opacity-20" style={{
-        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%), radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 50%),
+                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
         backgroundSize: "200% 200%",
         animation: "bg-pan 20s ease infinite",
       }}></div>
 
       <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+          font-family: 'Inter', sans-serif;
+        }
         @keyframes bg-pan {
           0% { background-position: 0% 0%; }
           50% { background-position: 100% 100%; }
@@ -316,241 +309,145 @@ const Eventos = () => {
           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
           border-radius: 1.5rem;
         }
-        .glass-table-header {
-          background: rgba(0, 255, 140, 0.2);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(0, 255, 140, 0.3);
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
         }
-        /* Brillo de texto Neón */
-        .neon-text-glow {
-          text-shadow: 0 0 8px #00FF8C, 0 0 15px #00FF8C, 0 0 25px #00FF8C, 0 0 40px rgba(0, 255, 140, 0.6);
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
         }
-        /* Brillo de foco de entrada mejorado */
-        .input-glow:focus {
-          box-shadow: 0 0 0 3px rgba(0, 255, 140, 0.6), 0 0 15px rgba(0, 255, 140, 0.9);
-        }
-        /* Efecto hover en fila de tabla */
-        .table-row-hover:hover {
-          transform: translateY(-3px); /* Pequeño levantamiento */
-          box-shadow: 0 8px 20px rgba(0, 255, 140, 0.3); /* Brillo debajo */
-          transition: all 0.3s ease-in-out;
-          background: rgba(0, 255, 140, 0.07); /* Ligero fondo neón */
-        }
-        .button-glow-hover:hover {
-          box-shadow: 0 0 20px rgba(0, 255, 140, 0.7), 0 0 35px rgba(0, 255, 140, 0.5);
-        }
-        /* Clases para el texto de estado en la tabla principal (manteniendo el estilo de pastilla) */
-        .status-badge-active {
-            @apply px-4 py-1.5 rounded-full text-xs font-bold bg-green-700 text-white shadow-lg shadow-green-600/40;
-        }
-        .status-badge-inactive {
-            @apply px-4 py-1.5 rounded-full text-xs font-bold bg-red-700 text-white shadow-lg shadow-red-600/40;
-        }
-        /* Clases para el texto de estado en el ModalVer (solo texto y color) */
-        .status-text-active-modal {
-            color: #39FF14; /* Verde neón brillante */
-            font-weight: bold;
-            text-shadow: 0 0 5px rgba(57, 255, 20, 0.3); /* Sutil brillo */
-        }
-        .status-text-inactive-modal {
-            color: #FF4500; /* Naranja rojizo para inactivo */
-            font-weight: bold;
-            text-shadow: 0 0 5px rgba(255, 69, 0, 0.3); /* Sutil brillo */
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #00FF8C;
+          border-radius: 10px;
+          border: 2px solid rgba(255, 255, 255, 0.1);
         }
       `}</style>
+
       <div className="relative z-10">
         <motion.div
-          className="glass-card p-8 mb-8"
+          className="glass-card p-8 mb-8 flex flex-col md:flex-row justify-between items-center"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120 }}
+          data-aos="fade-down"
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
-          <h1 className="text-4xl font-bold neon-text-glow">Gestión de Eventos</h1>
-          <p className="text-lg opacity-90">Administra los eventos del sistema con un toque futurista.</p>
+          <div>
+            <h1 className="text-4xl font-bold mb-2 md:mb-0">Gestión de Eventos</h1>
+            <p className="text-lg opacity-90">Administra los eventos del sistema</p>
+          </div>
+
+          <motion.div
+            className="glass-card p-3 rounded-lg flex items-center mt-4 md:mt-0"
+            variants={cardVariants}
+            data-aos="fade-down"
+            data-aos-easing="linear"
+            data-aos-duration="1500"
+          >
+            <nav className="flex items-center space-x-2 text-sm">
+              <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
+                Inicio
+              </Link>
+              <span className="text-gray-500">/</span>
+              <span className="text-white">Eventos</span>
+            </nav>
+          </motion.div>
         </motion.div>
 
         <motion.div
-          className="glass-card p-4 mb-8 flex justify-center"
-          variants={itemVariants}
+          className="glass-card p-6 mb-8 flex flex-wrap gap-4 items-center justify-between"
+          variants={cardVariants}
+          data-aos="fade-down"
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
-          <nav className="flex items-center space-x-2">
-            <Link to="/dashboard" className="text-[#00FF8C] hover:underline hover:neon-text-glow transition duration-300">
-              Inicio
-            </Link>
-            <span className="text-gray-500">/</span>
-            <span className="text-white">Eventos</span>
-          </nav>
-        </motion.div>
-
-        <motion.div
-          className="glass-card p-6 mb-8 flex flex-wrap gap-4"
-          variants={itemVariants}
-        >
-          <div className="relative flex-grow">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
+          <div className="relative flex-grow max-w-full md:max-w-sm">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar evento por nombre, género o ubicación..."
+              placeholder="Buscar evento por nombre, género, ubicación o artistas..."
               value={searchTerm}
               onChange={handleSearchChange}
-              className="w-full pl-10 pr-4 py-2 bg-transparent border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FF8C] input-glow transition duration-300"
+              className="w-full pl-10 pr-4 py-2 bg-transparent border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap gap-2 justify-center md:justify-end">
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2 text-gray-900 font-semibold transition duration-300"
+              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2 text-white font-semibold"
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
               onClick={handleFilterChange}
             >
               <FiFilter />
-              {filterActive === "all" ? "Mostrar Todos" : filterActive === "active" ? "Mostrar Activos" : "Mostrar Inactivos"}
+              {filterActive === "all" ? "Todos" : filterActive === "active" ? "Activos" : "Inactivos"}
             </motion.button>
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2 text-gray-900 font-semibold transition duration-300"
+              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2 text-white font-semibold"
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
               onClick={handleSortByDate}
             >
-              <FiFilter />
-              {sortOrder === "asc" ? "Fecha Ascendente" : "Fecha Descendente"}
+              {sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />} Fecha {sortOrder === "asc" ? "Asc" : "Desc"}
             </motion.button>
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2 text-gray-900 font-semibold transition duration-300"
+              className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2 text-white font-semibold"
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
               onClick={handleExportToExcel}
             >
-              <FiDownload /> Exportar a Excel
+              <FiDownload /> Exportar
             </motion.button>
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2 text-gray-900 font-semibold transition duration-300"
+              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2 text-white font-semibold"
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
               onClick={openModalCrear}
             >
-              <FiPlusCircle /> Crear Nuevo Evento
+              <FiPlusCircle /> Agregar Evento
             </motion.button>
           </div>
         </motion.div>
 
         <motion.div
-          className="glass-card p-6 overflow-x-auto"
-          variants={itemVariants}
+          className="grid gap-6"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          data-aos="fade-up"
+          data-aos-easing="linear"
+          data-aos-duration="1500"
         >
-          <table className="w-full">
-            <thead>
-              <tr className="glass-table-header">
-                <th className="py-3 px-6 text-left">Foto</th>
-                <th className="py-3 px-6 text-left">Nombre</th>
-                <th className="py-3 px-6 text-left">Género</th>
-                <th className="py-3 px-6 text-left">Descripción</th>
-                <th className="py-3 px-6 text-left">Ubicación</th>
-                <th className="py-3 px-6 text-left">Fecha</th>
-                <th className="py-3 px-6 text-left">Contacto</th>
-                <th className="py-3 px-6 text-left">Capacidad</th>
-                <th className="py-3 px-6 text-left">Artistas</th>
-                <th className="py-3 px-6 text-center">Estado</th>
-                <th className="py-3 px-6 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence>
-                {filteredEventos.map((evento, index) => (
-                  <motion.tr
-                    key={index}
-                    className="border-b border-gray-700 table-row-hover"
-                    variants={itemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="hidden"
-                  >
-                    <td className="py-4 px-6">
-                      {evento.foto ? (
-                        <img
-                          src={typeof evento.foto === 'string' ? evento.foto : URL.createObjectURL(evento.foto)}
-                          className="w-12 h-12 rounded-lg object-cover border-2 border-[#00FF8C] shadow-lg shadow-[#00FF8C]/50"
-                          alt="Evento"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center text-xs text-gray-400 border-2 border-gray-600">
-                          Sin foto
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 font-medium">{evento.nombreEvento}</td>
-                    <td className="py-4 px-6">{evento.generoMusical}</td>
-                    <td className="py-4 px-6 text-sm opacity-80">{evento.descripcion.substring(0, 50)}{evento.descripcion.length > 50 ? '...' : ''}</td>
-                    <td className="py-4 px-6">{evento.ubicacion}</td>
-                    <td className="py-4 px-6">{evento.fecha}</td>
-                    <td className="py-4 px-6 text-sm">{evento.contacto}</td>
-                    <td className="py-4 px-6">{evento.capacidad}</td>
-                    <td className="py-4 px-6 text-sm opacity-80">{evento.artistas.substring(0, 50)}{evento.artistas.length > 50 ? '...' : ''}</td>
-                    {/* EN LA TABLA PRINCIPAL, MANTENEMOS EL ESTILO DE PASTILLA COMO ESTABA ORIGINALMENTE */}
-                    <td className="py-4 px-6 text-center">
-                      <span className={evento.estado ? "status-badge-active" : "status-badge-inactive"}>
-                        {evento.estado ? "Activo" : "Inactivo"}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 flex justify-center items-center gap-2">
-                      <motion.button
-                        whileTap="tap"
-                        variants={iconButtonVariants}
-                        whileHover="hover"
-                        className="p-2 bg-blue-700 rounded-full shadow-lg shadow-blue-600/40"
-                        onClick={() => openModalVer(index)}
-                      >
-                        <FiEye className="text-white"/>
-                      </motion.button>
-                      <motion.button
-                        whileTap="tap"
-                        variants={iconButtonVariants}
-                        whileHover="hover"
-                        className="p-2 bg-yellow-700 rounded-full shadow-lg shadow-yellow-600/40"
-                        onClick={() => openModalEditar(index)}
-                      >
-                        <FiEdit className="text-white"/>
-                      </motion.button>
-                      {evento.estado ? (
-                        <motion.button
-                          whileTap="tap"
-                          variants={iconButtonVariants}
-                          whileHover="hover"
-                          className="p-2 bg-red-700 rounded-full shadow-lg shadow-red-600/40"
-                          onClick={() => handleDeleteEvento(index)}
-                        >
-                          <FiTrash2 className="text-white"/>
-                        </motion.button>
-                      ) : (
-                        <motion.button
-                          whileTap="tap"
-                          variants={iconButtonVariants}
-                          whileHover="hover"
-                          className="p-2 bg-green-700 rounded-full shadow-lg shadow-green-600/40"
-                          onClick={() => handleRestoreEvento(index)}
-                        >
-                          <FiRefreshCcw className="text-white"/>
-                        </motion.button>
-                      )}
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            </tbody>
-          </table>
-          {filteredEventos.length === 0 && (
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center text-gray-400 py-8 text-xl italic"
-            >
-              No se encontraron eventos que coincidan con su búsqueda.
-            </motion.p>
-          )}
+          <AnimatePresence>
+            {filteredEventos.length > 0 ? (
+              filteredEventos.map((evento, index) => (
+                <EventoCard
+                  key={evento.id}
+                  evento={evento}
+                  index={index}
+                  cardVariants={cardVariants}
+                  openModalVer={openModalVer}
+                  openModalEditar={openModalEditar}
+                  handleDeleteEvento={handleDeleteEvento}
+                  handleRestoreEvento={handleRestoreEvento}
+                />
+              ))
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="col-span-full text-center text-gray-400 text-xl py-10"
+              >
+                No se encontraron eventos que coincidan con tu búsqueda o filtros.
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         <AnimatePresence>
@@ -560,8 +457,9 @@ const Eventos = () => {
               onClose={closeModal}
               onChange={handleInputChange}
               onSave={handleAddEvento}
+              generosMusicales={generosMusicales}
               errors={errors}
-              title="Crear Nuevo Evento"
+              title="Agregar Evento"
             />
           )}
 
@@ -571,14 +469,15 @@ const Eventos = () => {
               onClose={closeModal}
               onChange={handleInputChange}
               onSave={handleUpdateEvento}
+              generosMusicales={generosMusicales}
               errors={errors}
-              title="Editar Detalles del Evento"
+              title="Editar Evento"
             />
           )}
 
           {modalVer && (
             <ModalVer
-              data={eventos[currentEvento]}
+              data={currentEvento}
               onClose={closeModal}
             />
           )}
@@ -588,7 +487,108 @@ const Eventos = () => {
   );
 };
 
-const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title }) => {
+// --- EventoCard Component ---
+const EventoCard = ({ evento, index, cardVariants, openModalVer, openModalEditar, handleDeleteEvento, handleRestoreEvento }) => {
+  return (
+    <motion.div
+      key={evento.id}
+      className="glass-card p-6 rounded-t-3xl rounded-br-3xl rounded-bl-xl shadow-md transition-all duration-300 hover:scale-[1.015] flex flex-col"
+      variants={cardVariants}
+      whileHover="hover"
+      layout
+      data-aos="fade-up"
+      data-aos-delay={index * 50}
+    >
+      <div className="flex flex-col h-full">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-white">{evento.nombreEvento}</h3>
+            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${evento.estado ? "bg-green-500" : "bg-red-500"}`}>
+              {evento.estado ? "Activo" : "Inactivo"}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              className="p-2 bg-blue-500 rounded-full hover:bg-blue-600 transition-colors"
+              onClick={() => openModalVer(evento)}
+              title="Ver detalles"
+            >
+              <FiEye className="text-white" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              className="p-2 bg-yellow-500 rounded-full hover:bg-yellow-600 transition-colors"
+              onClick={() => openModalEditar(evento)}
+              title="Editar evento"
+            >
+              <FiEdit className="text-white" />
+            </motion.button>
+            {evento.estado ? (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                className="p-2 bg-red-500 rounded-full hover:bg-red-600 transition-colors"
+                onClick={() => handleDeleteEvento(evento)}
+                title="Desactivar evento"
+              >
+                <FiTrash2 className="text-white" />
+              </motion.button>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                className="p-2 bg-green-500 rounded-full hover:bg-green-600 transition-colors"
+                onClick={() => handleRestoreEvento(evento)}
+                title="Activar evento"
+              >
+                <FiRefreshCcw className="text-white" />
+              </motion.button>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-4 rounded-lg overflow-hidden flex-shrink-0">
+          {evento.foto ? (
+            <img
+              src={typeof evento.foto === 'string' ? evento.foto : URL.createObjectURL(evento.foto)}
+              className="w-full h-48 object-cover rounded-lg"
+              alt={evento.nombreEvento}
+              onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300/333333/FFFFFF?text=Sin+Imagen"; }}
+            />
+          ) : (
+            <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center">
+              <span className="text-gray-400">Sin imagen</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-grow space-y-3">
+          <div>
+            <p className="text-sm text-gray-400">Género Musical</p>
+            <p className="font-medium">{evento.generoMusical}</p>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-400">Ubicación</p>
+            <p className="font-medium">{evento.ubicacion}</p>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-400">Fecha</p>
+            <p className="font-medium">{evento.fecha}</p>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-400">Artistas</p>
+            <p className="font-medium truncate">{evento.artistas}</p>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// --- ModalFormulario Component ---
+const ModalFormulario = ({ formData, onClose, onChange, onSave, generosMusicales, errors, title }) => {
   const [previewFotoUrl, setPreviewFotoUrl] = useState(null);
 
   useEffect(() => {
@@ -608,30 +608,29 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title })
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-auto"
     >
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 150, damping: 20 }}
-        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-2xl border border-white border-opacity-20"
+        initial={{ scale: 0.9, y: 50 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 50 }}
+        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-sm md:max-w-md lg:max-w-lg mx-auto my-8 border border-white border-opacity-20 relative"
       >
-        <h2 className="text-3xl font-bold mb-6 text-white text-center neon-text-glow">{title}</h2>
+        <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="mb-4 text-center col-span-2">
-            <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen del Evento</label>
+        <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="mb-4 text-center">
+            <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
             {previewFotoUrl && (
               <img
                 src={previewFotoUrl}
                 alt="Vista previa"
-                className="w-32 h-32 rounded-lg object-cover mx-auto mb-4 border-2 border-[#00FF8C] shadow-lg shadow-[#00FF8C]/50"
+                className="w-32 h-32 rounded-lg object-cover mx-auto mb-4 border border-gray-600"
               />
             )}
             <label
               htmlFor="foto"
-              className="inline-block bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 px-5 py-2.5 rounded-lg cursor-pointer hover:from-[#39FF14] hover:to-[#00FF8C] transition duration-300 font-bold"
+              className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition font-semibold"
             >
               {previewFotoUrl ? "Cambiar Imagen" : "Subir Imagen"}
               <input
@@ -643,63 +642,90 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title })
                 accept="image/*"
               />
             </label>
-            {errors.foto && (
-              <p className="text-red-500 text-sm mt-1">{errors.foto}</p>
-            )}
           </div>
 
-          {[
-            { label: "Nombre del Evento", name: "nombreEvento", type: "text" },
-            { label: "Género Musical", name: "generoMusical", type: "text" },
-            { label: "Ubicación", name: "ubicacion", type: "text" },
-            { label: "Fecha", name: "fecha", type: "date" },
-            { label: "Contacto", name: "contacto", type: "text" },
-            { label: "Capacidad", name: "capacidad", type: "number" },
-            { label: "Artistas Participantes", name: "artistas", type: "text", colSpan: "col-span-2" },
-            { label: "Descripción Detallada", name: "descripcion", type: "textarea", colSpan: "col-span-2" },
-          ].map((field) => (
-            <div key={field.name} className={field.colSpan || ""}>
-              <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
-              {field.type === "textarea" ? (
-                <textarea
-                  name={field.name}
-                  value={formData[field.name]}
-                  onChange={onChange}
-                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] input-glow transition duration-300 ${errors[field.name] ? "border-red-500" : ""}`}
-                  rows="4"
-                />
-              ) : (
+          <div className="space-y-4">
+            {[
+              { label: "Nombre del Evento", name: "nombreEvento", type: "text" },
+              { label: "Ubicación", name: "ubicacion", type: "text" },
+              { label: "Fecha", name: "fecha", type: "date" },
+              { label: "Contacto", name: "contacto", type: "text" },
+              { label: "Capacidad", name: "capacidad", type: "number" },
+              { label: "Artistas", name: "artistas", type: "text" },
+            ].map((field) => (
+              <div key={field.name}>
+                <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
                 <input
                   type={field.type}
                   name={field.name}
                   value={formData[field.name]}
                   onChange={onChange}
-                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] input-glow transition duration-300 ${errors[field.name] ? "border-red-500" : ""}`}
+                  className={`w-full p-3 bg-gray-800 border ${
+                    errors[field.name] ? "border-red-500" : "border-gray-700"
+                  } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]`}
                 />
-              )}
-              {errors[field.name] && (
-                <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                {errors[field.name] && (
+                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                )}
+              </div>
+            ))}
+
+            <div>
+              <label className="block text-sm font-semibold mb-1 text-gray-300">Género Musical</label>
+              <select
+                name="generoMusical"
+                value={formData.generoMusical}
+                onChange={onChange}
+                className={`w-full p-3 bg-gray-800 border ${
+                  errors.generoMusical ? "border-red-500" : "border-gray-700"
+                } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]`}
+              >
+                <option value="">Selecciona un género</option>
+                {generosMusicales.map((genero, idx) => (
+                  <option key={idx} value={genero}>
+                    {genero}
+                  </option>
+                ))}
+              </select>
+              {errors.generoMusical && (
+                <p className="text-red-500 text-sm mt-1">{errors.generoMusical}</p>
               )}
             </div>
-          ))}
+
+            <div>
+              <label className="block text-sm font-semibold mb-1 text-gray-300">Descripción</label>
+              <textarea
+                name="descripcion"
+                value={formData.descripcion}
+                onChange={onChange}
+                rows="3"
+                className={`w-full p-3 bg-gray-800 border ${
+                  errors.descripcion ? "border-red-500" : "border-gray-700"
+                } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]`}
+              ></textarea>
+              {errors.descripcion && (
+                <p className="text-red-500 text-sm mt-1">{errors.descripcion}</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end space-x-3 mt-8">
           <motion.button
             onClick={onClose}
-            className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:from-gray-600 hover:to-gray-700 transition duration-300"
-            whileHover={{ scale: 1.05, boxShadow: "0 0 12px rgba(255, 255, 255, 0.4)" }}
+            className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:from-gray-600 hover:to-gray-700 transition-colors"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             Cancelar
           </motion.button>
           <motion.button
             onClick={onSave}
-            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg button-glow-hover transition duration-300"
-            whileHover="hover"
+            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg hover:from-[#39FF14] hover:to-[#00FF8C] transition-colors"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Guardar Evento
+            Guardar
           </motion.button>
         </div>
       </motion.div>
@@ -707,76 +733,91 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title })
   );
 };
 
+// --- ModalVer Component ---
 const ModalVer = ({ data, onClose }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-auto"
     >
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 150, damping: 20 }}
-        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-2xl border border-white border-opacity-20"
+        initial={{ scale: 0.9, y: 50 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 50 }}
+        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-sm md:max-w-md mx-auto my-8 border border-white border-opacity-20 relative"
       >
-        <h2 className="text-3xl font-bold mb-6 text-white text-center neon-text-glow">Detalles del Evento</h2>
+        <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Evento</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="text-center col-span-2">
-            {data.foto ? (
-              <img
-                src={typeof data.foto === 'string' ? data.foto : URL.createObjectURL(data.foto)}
-                alt="Evento"
-                className="w-40 h-40 rounded-lg object-cover mx-auto border-2 border-[#00FF8C] shadow-xl shadow-[#00FF8C]/60"
-              />
-            ) : (
-              <div className="w-40 h-40 bg-gray-700 rounded-lg flex items-center justify-center mx-auto border-2 border-gray-600">
-                <span className="text-gray-400 text-lg">Sin foto</span>
-              </div>
-            )}
-          </div>
-
-          {[
-            { label: "Nombre del Evento", value: data.nombreEvento },
-            { label: "Género Musical", value: data.generoMusical },
-            { label: "Ubicación", value: data.ubicacion },
-            { label: "Fecha del Evento", value: data.fecha },
-            { label: "Contacto Principal", value: data.contacto },
-            { label: "Capacidad Máxima", value: data.capacidad },
-            { label: "Artistas / Bandas", value: data.artistas, colSpan: "col-span-2" },
-            { label: "Descripción Completa", value: data.descripcion, colSpan: "col-span-2" },
-          ].map((item) => (
-            <div key={item.label} className={item.colSpan || ""}>
-              <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
-              <p className="text-lg text-white break-words p-2 bg-gray-800 rounded-md border border-gray-700">{item.value}</p>
+        <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-4">
+            <div className="text-center mb-6">
+              {data.foto ? (
+                <img
+                  src={typeof data.foto === 'string' ? data.foto : URL.createObjectURL(data.foto)}
+                  alt="Evento"
+                  className="w-40 h-40 rounded-lg object-cover mx-auto border border-gray-600 shadow-md"
+                  onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300/333333/FFFFFF?text=Sin+Imagen"; }}
+                />
+              ) : (
+                <div className="w-40 h-40 bg-gray-700 rounded-lg flex items-center justify-center mx-auto border border-gray-600 shadow-md">
+                  <span className="text-gray-400 text-lg">Sin foto</span>
+                </div>
+              )}
             </div>
-          ))}
 
-          <div className="col-span-2">
-            <label className="block text-sm font-semibold mb-1 text-gray-300">Estado Actual</label>
-            {/* CAMBIO CRÍTICO: Aquí quitamos las clases de pastilla y usamos solo las de texto */}
-            <span className={`font-bold text-lg ${data.estado ? "status-text-active-modal" : "status-text-inactive-modal"}`}>
-              {data.estado ? "Activo y Visible" : "Inactivo y Oculto"}
-            </span>
+            {[
+              { label: "Nombre del Evento", value: data.nombreEvento },
+              { label: "Género Musical", value: data.generoMusical },
+              { label: "Ubicación", value: data.ubicacion },
+              { label: "Fecha", value: data.fecha },
+              { label: "Contacto", value: data.contacto },
+              { label: "Capacidad", value: data.capacidad },
+              { label: "Artistas", value: data.artistas },
+              { label: "Descripción", value: data.descripcion },
+            ].map((item) => (
+              <div key={item.label} className="flex flex-col">
+                <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
+                <p className="text-lg text-white bg-gray-800 p-3 rounded-lg border border-gray-700">{item.value}</p>
+              </div>
+            ))}
+
+            <div className="flex flex-col">
+              <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
+              <span className={`px-4 py-2 rounded-full text-base font-bold w-fit ${
+                data.estado ? "bg-green-600 text-white" : "bg-red-600 text-white"
+              }`}>
+                {data.estado ? "Activo" : "Inactivo"}
+              </span>
+            </div>
           </div>
         </div>
 
         <div className="flex justify-end mt-8">
           <motion.button
             onClick={onClose}
-            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg button-glow-hover transition duration-300"
-            whileHover="hover"
+            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg hover:from-[#39FF14] hover:to-[#00FF8C] transition-colors"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Cerrar Detalles
+            Cerrar
           </motion.button>
         </div>
       </motion.div>
     </motion.div>
   );
+};
+
+// PropTypes for type checking
+EventoCard.propTypes = {
+  evento: PropTypes.object.isRequired,
+  index: PropTypes.number.isRequired,
+  cardVariants: PropTypes.object.isRequired,
+  openModalVer: PropTypes.func.isRequired,
+  openModalEditar: PropTypes.func.isRequired,
+  handleDeleteEvento: PropTypes.func.isRequired,
+  handleRestoreEvento: PropTypes.func.isRequired,
 };
 
 ModalFormulario.propTypes = {
@@ -784,6 +825,7 @@ ModalFormulario.propTypes = {
   onClose: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
+  generosMusicales: PropTypes.array.isRequired,
   errors: PropTypes.object.isRequired,
   title: PropTypes.string.isRequired,
 };

@@ -41,6 +41,15 @@ const Manager = () => {
       fecha: "2025-03-20",
       estado: true,
     },
+    {
+      foto: "https://randomuser.me/api/portraits/women/2.jpg",
+      apellidos: "Silva",
+      nombres: "Julia",
+      correo: "julia.silva@example.com",
+      genero: "Femenino",
+      fecha: "2025-03-20",
+      estado: true,
+    },
   ]);
 
   const [modalCrear, setModalCrear] = useState(false);
