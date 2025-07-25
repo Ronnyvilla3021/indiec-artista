@@ -1,215 +1,169 @@
-/**
- * Importaciones necesarias para el componente de registro
- * - useState: para manejar el estado de los inputs del formulario.
- * - useNavigate: para redireccionar a otras rutas.
- * - motion: para animaciones.
- * - FiUserPlus: para el ícono del botón de registro.
- * - Swal: para mostrar alertas agradables al usuario.
- */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiUserPlus } from "react-icons/fi";
 import Swal from "sweetalert2";
+import api from "../axiosConfig";
 
-/**
- * Componente principal del formulario de registro
- */
 const Register = () => {
-  // Declaración de hooks para manejar el estado de los inputs
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [emailUser, setEmail] = useState("");
+  const [passwordUser, setPassword] = useState("");
+  const [userName, setUserName] = useState("");
+  const [nameUsers, setNameUsers] = useState("");
+  const [phoneUser, setPhone] = useState("");
 
-  /**
-   * Sanitiza las entradas del usuario para prevenir ataques XSS
-   * Reemplaza caracteres especiales por su representación segura
-   * @param {string} input - Texto a sanitizar
-   * @returns {string} - Texto seguro
-   */
-  const sanitizeInput = (input) => {
-    return input.replace(/[<>"'`]/g, (match) => `&#${match.charCodeAt(0)};`);
-  };
-
-  // Expresión regular para validar emails
+  const sanitizeInput = (input) => input.replace(/[<>"'`]/g, (match) => `&#${match.charCodeAt(0)};`);
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  /**
-   * Maneja el registro del usuario y valida los datos
-   * @param {Event} e - Evento del formulario
-   */
-  const handleRegister = (e) => {
-    e.preventDefault(); // Evita la recarga de la página
+  const handleRegister = async (e) => {
+    e.preventDefault();
 
-    // Sanitización de las entradas del usuario
-    const sanitizedEmail = sanitizeInput(email);
-    const sanitizedPassword = sanitizeInput(password);
-    const sanitizedUsername = sanitizeInput(username);
-    const sanitizedPhone = sanitizeInput(phoneNumber);
+    const email = sanitizeInput(emailUser.trim());
+    const password = sanitizeInput(passwordUser.trim());
+    const username = sanitizeInput(userName.trim());
+    const fullName = sanitizeInput(nameUsers.trim());
+    const phone = sanitizeInput(phoneUser.trim());
 
-    // Validaciones del formulario
-    if (!sanitizedEmail || !sanitizedPassword || !sanitizedUsername || !sanitizedPhone) {
-      Swal.fire({
+    if (!email || !password || !username || !fullName || !phone) {
+      return Swal.fire({
         title: "Error",
         text: "Todos los campos son requeridos",
         icon: "error",
         confirmButtonText: "Aceptar",
       });
-      return;
     }
 
-    if (!emailRegex.test(sanitizedEmail)) {
-      Swal.fire({
+    if (!emailRegex.test(email)) {
+      return Swal.fire({
         title: "Error",
-        text: "Formato de correo electrónico no válido",
+        text: "Correo electrónico inválido",
         icon: "error",
         confirmButtonText: "Intentar de nuevo",
       });
-      return;
     }
 
-    if (sanitizedPassword.length < 5) {
-      Swal.fire({
+    if (password.length < 5) {
+      return Swal.fire({
         title: "Error",
         text: "La contraseña debe tener al menos 5 caracteres",
         icon: "error",
         confirmButtonText: "Intentar de nuevo",
       });
-      return;
     }
 
-    // Mensaje de registro exitoso
-    Swal.fire({
-      title: "Registro Exitoso",
-      text: "Te has registrado correctamente",
-      icon: "success",
-      confirmButtonText: "Ir al Dashboard",
-    }).then(() => {
-      navigate("/dashboard"); // Navega al dashboard tras el registro
-    });
+    try {
+      const res = await api.post("/auth/register", {
+        nameUsers: fullName,
+        phoneUser: phone,
+        emailUser: email,
+        passwordUser: password,
+        userName: username,
+        stateUser: "activo",
+        createUser: "sistema",
+        updateUser: "sistema"
+      });
+
+      Swal.fire({
+        title: "Registro Exitoso",
+        text: res.data.message || "Te has registrado correctamente",
+        icon: "success",
+        confirmButtonText: "Ir al Login",
+      }).then(() => {
+        navigate("/");
+      });
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || "Error en el registro";
+      Swal.fire({
+        title: "Error",
+        text: msg,
+        icon: "error",
+        confirmButtonText: "Aceptar",
+      });
+    }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-cover bg-center bg-[url('/registro-fondo.jpg')] ">
-      {/* Contenedor principal con animación */}
-      <motion.div
-        className="flex w-full max-w-4xl bg-white rounded-lg shadow-lg"
-        initial={{ opacity: 0, x: -100 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.8, type: "spring", stiffness: 100 }}
+    <div className="flex justify-center items-center min-h-screen p-4 bg-cover bg-center bg-[url('/registro-fondo.jpg')]">
+      <motion.div 
+        className="flex w-full max-w-4xl bg-white rounded-lg shadow-lg overflow-hidden"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
       >
-        {/* Imagen del lado izquierdo del formulario */}
-        <div
-          className="hidden lg:block w-full lg:w-1/2 h-[300px] lg:h-auto bg-cover bg-center bg-no-repeat rounded-lg overflow-hidden"
-          style={{ backgroundImage: "url('/img/piezas.jpeg')" }}
-        ></div>
+        <div className="hidden lg:block w-full lg:w-1/2 h-auto bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/img/piezas.jpeg')" }}></div>
 
-        {/* Contenido del formulario */}
-        <div className="w-full sm:w-1/2 p-8">
-          <h2 className="text-4xl font-bold text-center text-green-700 mb-6">
-            Regístrate
-          </h2>
-
-          {/* Formulario de registro */}
-          <form onSubmit={handleRegister}>
-            {/* Campo de nombre de usuario */}
-            <motion.div
-              className="mb-6"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
-            >
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Nombre de Usuario
-              </label>
-              <input
-                type="text"
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Ingresa tu nombre de usuario"
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+        <div className="w-full lg:w-1/2 p-6 sm:p-8 overflow-y-auto" style={{ maxHeight: "90vh" }}>
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-green-700 mb-6">Regístrate</h2>
+          
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+              <input 
+                type="text" 
+                value={nameUsers} 
+                onChange={(e) => setNameUsers(e.target.value)} 
+                placeholder="Nombre completo" 
+                className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 bg-white"
               />
-            </motion.div>
+            </div>
 
-            {/* Campo de email */}
-            <motion.div
-              className="mb-6"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
-            >
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Ingresa tu correo electrónico"
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de Usuario</label>
+              <input 
+                type="text" 
+                value={userName} 
+                onChange={(e) => setUserName(e.target.value)} 
+                placeholder="Usuario" 
+                className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 bg-white"
               />
-            </motion.div>
+            </div>
 
-            {/* Campo de número de teléfono */}
-            <motion.div
-              className="mb-6"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
-            >
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
-                Número de Teléfono
-              </label>
-              <input
-                type="tel"
-                id="phoneNumber"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Ingresa tu número de teléfono"
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+              <input 
+                type="email" 
+                value={emailUser} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="Email" 
+                className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 bg-white"
               />
-            </motion.div>
+            </div>
 
-            {/* Campo de contraseña */}
-            <motion.div
-              className="mb-6"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
-            >
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Crea una contraseña"
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+              <input 
+                type="tel" 
+                value={phoneUser} 
+                onChange={(e) => setPhone(e.target.value)} 
+                placeholder="Teléfono" 
+                className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 bg-white"
               />
-            </motion.div>
+            </div>
 
-            {/* Botón de registro */}
-            <button
-              type="submit"
-              className="w-full py-3 bg-green-600 text-white rounded-md flex items-center justify-center gap-2 hover:bg-green-700 transition duration-200"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+              <input 
+                type="password" 
+                value={passwordUser} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="Contraseña" 
+                className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 bg-white"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              className="w-full py-2 sm:py-3 bg-green-600 text-white rounded-md flex items-center justify-center gap-2 hover:bg-green-700 transition duration-200 mt-6"
             >
               <FiUserPlus /> Registrar
             </button>
           </form>
 
-          {/* Enlace para iniciar sesión si ya se tiene una cuenta */}
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">
               ¿Ya tienes una cuenta?{" "}
-              <a href="/" className="text-green-600 hover:text-green-700 font-semibold">
-                Inicia sesión aquí
-              </a>
+              <a href="/" className="text-green-600 hover:text-green-700 font-semibold">Inicia sesión aquí</a>
             </p>
           </div>
         </div>
