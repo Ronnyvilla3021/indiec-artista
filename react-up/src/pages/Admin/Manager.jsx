@@ -1,149 +1,219 @@
 import { useState, useEffect } from "react";
-import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiEye,
   FiEdit,
   FiTrash2,
   FiRefreshCcw,
-  FiFilter,
   FiDownload,
+  FiFilter,
   FiPlusCircle,
   FiSearch,
 } from "react-icons/fi";
-import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
-import xss from "xss";
+import Swal from "sweetalert2";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import axios from "axios";
+
+// Configuración de Axios
+const api = axios.create({
+  baseURL: 'http://localhost:9000/manager',
+});
+
+// Añade esto antes de tu llamada Axios
+console.log('URL completa:', api.defaults.baseURL + '/lista');
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    let errorMessage = "Ocurrió un error inesperado.";
+    if (error.response) {
+      errorMessage = error.response.data.message || error.response.statusText;
+      console.error("Error en la respuesta del API:", error.response.data);
+    } else if (error.request) {
+      errorMessage = "No se pudo conectar con el servidor. Verifica tu conexión.";
+      console.error("Error de conexión:", error.request);
+    } else {
+      errorMessage = error.message;
+      console.error("Error de Axios:", error.message);
+    }
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: errorMessage,
+      background: "#1a1a1a",
+      confirmButtonColor: "#00FF8C",
+      color: "#ffffff",
+    });
+    return Promise.reject(error);
+  }
+);
 
 const Manager = () => {
-  /* -------------------------------------------------------------------------- */
-  /*                                ESTADO                                     */
-  /* -------------------------------------------------------------------------- */
-  const [managers, setManagers] = useState([
-    {
-      foto: "https://randomuser.me/api/portraits/men/1.jpg",
-      apellidos: "Perez",
-      nombres: "Juan",
-      correo: "juan.perez@example.com",
-      genero: "Masculino",
-      fecha: "2025-02-10",
-      estado: true,
-    },
-    {
-      foto: "https://randomuser.me/api/portraits/women/1.jpg",
-      apellidos: "Gomez",
-      nombres: "Maria",
-      correo: "maria.gomez@example.com",
-      genero: "Femenino",
-      fecha: "2025-03-20",
-      estado: true,
-    },
-    {
-      foto: "https://randomuser.me/api/portraits/women/2.jpg",
-      apellidos: "Silva",
-      nombres: "Julia",
-      correo: "julia.silva@example.com",
-      genero: "Femenino",
-      fecha: "2025-03-20",
-      estado: true,
-    },
-  ]);
+  useEffect(() => {
+    AOS.init({ once: true, mirror: false });
+    AOS.refresh();
+    fetchManagers();
+  }, []);
 
+  const [managers, setManagers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalVer, setModalVer] = useState(false);
   const [formData, setFormData] = useState({
+    idManager: null,
     foto: null,
     apellidos: "",
     nombres: "",
     correo: "",
     genero: "",
     fecha: "",
+    estado: "activo",
   });
+  const [previewFoto, setPreviewFoto] = useState(null);
   const [currentManager, setCurrentManager] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterActive, setFilterActive] = useState("all");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [errors, setErrors] = useState({});
+  const [sortOrder, setSortOrder] = useState("asc");
 
-  /* -------------------------------------------------------------------------- */
-  /*                             EFECTO - AOS                                   */
-  /* -------------------------------------------------------------------------- */
-  useEffect(() => {
-    AOS.init({ duration: 1000, easing: "ease-in-out", once: true });
-  }, []);
+  const generos = ["Masculino", "Femenino", "Otro"];
 
-  /* -------------------------------------------------------------------------- */
-  /*                               VARIANTS                                     */
-  /* -------------------------------------------------------------------------- */
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  const fetchManagers = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/lista');
+      const managersFetched = response.data.data.map(manager => ({
+        idManager: manager.idManager,
+        apellidos: manager.apellidos,
+        nombres: manager.nombres,
+        correo: manager.correo,
+        genero: manager.genero,
+        fecha: manager.fecha,
+        estado: manager.estado,
+        foto: manager.foto ? `${api.defaults.baseURL}/uploads/${manager.foto}` : null,
+      }));
+      setManagers(managersFetched);
+    } catch (error) {
+      console.error("Error al cargar managers:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const cardVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 },
-    },
-    hover: {
-      y: -5,
-      boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)",
-    },
+  const handleAddManager = async () => {
+    if (!validateForm()) return;
+
+    const dataToSend = new FormData();
+    dataToSend.append('apellidos', formData.apellidos);
+    dataToSend.append('nombres', formData.nombres);
+    dataToSend.append('correo', formData.correo);
+    dataToSend.append('genero', formData.genero);
+    dataToSend.append('fecha', formData.fecha);
+    if (formData.foto) {
+      dataToSend.append('foto', formData.foto);
+    }
+
+    try {
+      const response = await api.post('/crear', dataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      Swal.fire({
+        icon: "success",
+        title: "Manager agregado",
+        text: response.data.message || `El manager "${formData.nombres} ${formData.apellidos}" fue agregado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      closeModal();
+      fetchManagers();
+    } catch (error) {
+      console.error("Error al agregar manager:", error);
+    }
   };
 
-  const buttonVariants = {
-    hover: { scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" },
-    tap: { scale: 0.95 },
+  const handleUpdateManager = async () => {
+    if (!validateForm()) return;
+    if (!formData.idManager) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "ID de manager no encontrado para actualizar.",
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      return;
+    }
+
+    const dataToSend = new FormData();
+    dataToSend.append('apellidos', formData.apellidos);
+    dataToSend.append('nombres', formData.nombres);
+    dataToSend.append('correo', formData.correo);
+    dataToSend.append('genero', formData.genero);
+    dataToSend.append('fecha', formData.fecha);
+    dataToSend.append('estado', formData.estado);
+    if (formData.foto instanceof File) {
+      dataToSend.append('foto', formData.foto);
+    }
+
+    try {
+      const response = await api.put(`/editar/${formData.idManager}`, dataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      Swal.fire({
+        icon: "success",
+        title: "Manager actualizado",
+        text: response.data.message || `El manager "${formData.nombres} ${formData.apellidos}" fue actualizado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      closeModal();
+      fetchManagers();
+    } catch (error) {
+      console.error("Error al actualizar manager:", error);
+    }
   };
 
-  /* -------------------------------------------------------------------------- */
-  /*                               HANDLERS                                     */
-  /* -------------------------------------------------------------------------- */
-  const handleSearchChange = (e) => setSearchTerm(xss(e.target.value));
-
-  const handleExportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredManagers);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Managers");
-    XLSX.writeFile(workbook, "managers.xlsx");
+  const handleDeleteManager = async (idManager, nombreCompleto) => {
+    try {
+      const response = await api.put(`/desactivar/${idManager}`);
+      Swal.fire({
+        icon: "success",
+        title: "Manager desactivado",
+        text: response.data.message || `El manager "${nombreCompleto}" fue desactivado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      fetchManagers();
+    } catch (error) {
+      console.error("Error al desactivar manager:", error);
+    }
   };
 
-  const handleFilterChange = () => {
-    setFilterActive((prev) => {
-      if (prev === "all") return "active";
-      if (prev === "active") return "inactive";
-      return "all";
-    });
+  const handleRestoreManager = async (idManager, nombreCompleto) => {
+    try {
+      const response = await api.put(`/activar/${idManager}`);
+      Swal.fire({
+        icon: "success",
+        title: "Manager activado",
+        text: response.data.message || `El manager "${nombreCompleto}" fue activado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      fetchManagers();
+    } catch (error) {
+      console.error("Error al activar manager:", error);
+    }
   };
 
-  const handleSortByDate = () => {
-    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-  };
-
-  /* --------------------------- LISTA FILTRADA -------------------------------- */
-  const filteredManagers = managers
-    .filter(
-      (manager) =>
-        manager.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        manager.apellidos.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter((manager) => {
-      if (filterActive === "all") return true;
-      return filterActive === "active" ? manager.estado : !manager.estado;
-    })
-    .sort((a, b) =>
-      sortOrder === "asc"
-        ? new Date(a.fecha) - new Date(b.fecha)
-        : new Date(b.fecha) - new Date(a.fecha)
-    );
-
-  /* ----------------------------- CRUD HELPERS -------------------------------- */
   const openModalCrear = () => {
     setFormData({
       foto: null,
@@ -152,18 +222,32 @@ const Manager = () => {
       correo: "",
       genero: "",
       fecha: "",
+      estado: "activo",
     });
+    setPreviewFoto(null);
+    setErrors({});
     setModalCrear(true);
   };
 
-  const openModalEditar = (index) => {
-    setCurrentManager(index);
-    setFormData(managers[index]);
+  const openModalEditar = (manager) => {
+    setCurrentManager(manager.idManager);
+    setFormData({
+      idManager: manager.idManager,
+      foto: manager.foto,
+      apellidos: manager.apellidos,
+      nombres: manager.nombres,
+      correo: manager.correo,
+      genero: manager.genero,
+      fecha: manager.fecha,
+      estado: manager.estado,
+    });
+    setPreviewFoto(manager.foto);
+    setErrors({});
     setModalEditar(true);
   };
 
-  const openModalVer = (index) => {
-    setCurrentManager(index);
+  const openModalVer = (manager) => {
+    setCurrentManager(manager);
     setModalVer(true);
   };
 
@@ -171,185 +255,196 @@ const Manager = () => {
     setModalCrear(false);
     setModalEditar(false);
     setModalVer(false);
+    setErrors({});
+    setCurrentManager(null);
   };
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "foto" ? files[0] : xss(value),
-    }));
+    if (name === "foto" && files && files.length > 0) {
+      const file = files[0];
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewFoto(objectUrl);
+      setFormData((prev) => ({ ...prev, foto: file }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.apellidos) newErrors.apellidos = "Apellidos obligatorios";
-    if (!formData.nombres) newErrors.nombres = "Nombres obligatorios";
-    if (!formData.correo) newErrors.correo = "Correo obligatorio";
-    if (!formData.genero) newErrors.genero = "Género obligatorio";
-    if (!formData.fecha) newErrors.fecha = "Fecha obligatoria";
+    if (!formData.apellidos) newErrors.apellidos = "Apellidos son obligatorios";
+    if (!formData.nombres) newErrors.nombres = "Nombres son obligatorios";
+    if (!formData.correo) newErrors.correo = "Correo es obligatorio";
+    if (!formData.genero) newErrors.genero = "Género es obligatorio";
+    if (!formData.fecha) newErrors.fecha = "Fecha es obligatoria";
+    
+    // Validación de formato de correo
+    if (formData.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
+      newErrors.correo = "Correo electrónico no válido";
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAddManager = () => {
-    if (!validateForm()) return;
-    setManagers([...managers, { ...formData, estado: true }]);
-    Swal.fire("Éxito", "Manager agregado", "success");
-    closeModal();
+  const handleSearchChange = (e) => setSearchTerm(e.target.value);
+
+  const handleFilterStatusChange = () => {
+    setFilterStatus((prev) => {
+      if (prev === "all") return "active";
+      if (prev === "active") return "inactive";
+      return "all";
+    });
   };
 
-  const handleUpdateManager = () => {
-    if (!validateForm()) return;
-    const updated = [...managers];
-    updated[currentManager] = formData;
-    setManagers(updated);
-    Swal.fire("Éxito", "Manager actualizado", "success");
-    closeModal();
+  const handleExportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredManagers.map((m) => ({
+        ID: m.idManager,
+        Apellidos: m.apellidos,
+        Nombres: m.nombres,
+        Correo: m.correo,
+        Género: m.genero,
+        Fecha: m.fecha,
+        Estado: m.estado === 'activo' ? 'Activo' : 'Inactivo',
+      }))
+    );
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Managers");
+    XLSX.writeFile(workbook, "managers.xlsx");
   };
 
-  const handleDeleteManager = (index) => {
-    const updated = [...managers];
-    updated[index].estado = false;
-    setManagers(updated);
-    Swal.fire("Info", "Manager desactivado", "info");
-  };
+  const handleSortByDate = () => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
 
-  const handleRestoreManager = (index) => {
-    const updated = [...managers];
-    updated[index].estado = true;
-    setManagers(updated);
-    Swal.fire("Éxito", "Manager activado", "success");
-  };
+  const filteredManagers = managers
+    .filter((m) => 
+      m.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.correo.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter((m) => {
+      if (filterStatus === "all") return true;
+      return filterStatus === "active" ? m.estado === "activo" : m.estado === "inactivo";
+    })
+    .sort((a, b) => {
+      if (sortOrder === "asc") {
+        return new Date(a.fecha) - new Date(b.fecha);
+      } else {
+        return new Date(b.fecha) - new Date(a.fecha);
+      }
+    });
 
-  /* -------------------------------------------------------------------------- */
-  /*                                 RENDER                                     */
-  /* -------------------------------------------------------------------------- */
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
-      {/* FONDO ANIMADO VERDE NEÓN */}
       <div
         className="absolute inset-0 z-0 opacity-20"
         style={{
-          background: `radial-gradient(circle at top left, #39FF14 0%, transparent 30%),
-                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+          background: `radial-gradient(circle at top left, #39FF14 0%, transparent 50%),
+                       radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
           backgroundSize: "200% 200%",
           animation: "bg-pan 20s ease infinite",
         }}
       ></div>
 
-      {/* ESTILOS EXTRA (glass) */}
-      <style jsx>{`
+      <style>{`
         @keyframes bg-pan {
-          0% {
-            background-position: 0% 0%;
-          }
-          50% {
-            background-position: 100% 100%;
-          }
-          100% {
-            background-position: 0% 0%;
-          }
+          0% { background-position: 0% 0%; }
+          50% { background-position: 100% 100%; }
+          100% { background-position: 0% 0%; }
         }
-  .glass-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(15px);
--   border: 1px solid rgba(255, 255, 255, 0.1);
--   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-+   border: 1px solid transparent;
-+   background-image:
-+     linear-gradient(to bottom right, rgba(255,255,255,0.1), rgba(255,255,255,0)),
-+     radial-gradient(100% 100% at top left, #39FF14 0%, transparent 70%);
-+   background-origin: border-box;
-+   background-clip: content-box, border-box;
-+   box-shadow: 0 10px 25px -5px rgba(0,0,0,0.45);
-    border-radius: 1.5rem;
-  }
-
+        .glass-card {
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(15px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+          border-radius: 1.5rem;
+        }
       `}</style>
 
-      {/* Contenido principal */}
       <div className="relative z-10">
-        {/* Encabezado con animación - ahora con flex para alinear título y breadcrumbs */}
         <motion.div
           className="glass-card p-8 mb-8 flex justify-between items-center"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120 }}
           data-aos="fade-down"
-          data-aos-easing="linear"
-          data-aos-duration="1500"
         >
           <div>
-            <h1 className="text-4xl font-bold">Gestion de Managers</h1>
-            <p className="text-lg opacity-90">Administra los managers del sistema</p>
+            <h1 className="text-4xl font-bold">Managers</h1>
+            <p className="text-lg opacity-90">Administra tus managers</p>
           </div>
-
-          {/* Migas de pan (breadcrumbs) - ahora en la derecha y más compacto */}
-          <motion.div
-            className="glass-card p-3 rounded-lg flex items-center"
-            variants={cardVariants}
-            data-aos="fade-down"
-            data-aos-easing="linear"
-            data-aos-duration="1500"
-          >
+          <motion.div className="glass-card p-3 rounded-lg flex items-center">
             <nav className="flex items-center space-x-2 text-sm">
-              <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
-                Inicio
-              </Link>
+              <Link to="/dashboard" className="text-[#00FF8C] hover:underline">Inicio</Link>
               <span className="text-gray-500">/</span>
               <span className="text-white">Managers</span>
             </nav>
           </motion.div>
         </motion.div>
 
-        {/* Controles */}
-        <motion.div className="glass-card p-6 mb-8 flex flex-wrap gap-4" variants={cardVariants}>
-          <div className="relative max-w-sm w-full">
+        <motion.div
+          className="glass-card p-6 mb-8 flex flex-wrap gap-4"
+          variants={{
+            hidden: { y: 20, opacity: 0 },
+            visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+          }}
+          initial="hidden"
+          animate="visible"
+          data-aos="fade-down"
+        >
+          <div className="relative flex-grow">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar manager..."
               value={searchTerm}
               onChange={handleSearchChange}
-              className="pl-10 pr-4 py-2 w-full bg-transparent border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
+              className="w-full pl-10 pr-4 py-2 bg-transparent border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
             />
           </div>
-          <div className="flex flex-wrap justify-end gap-2 w-full md:w-auto md:ml-auto">
+
+          <div className="flex gap-2 flex-wrap">
             <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-              onClick={handleFilterChange}
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleFilterStatusChange}
             >
               <FiFilter />
-              {filterActive === "all" ? "Todos" : filterActive === "active" ? "Activos" : "Inactivos"}
+              {filterStatus === "all" ? "Todos" : filterStatus === "active" ? "Activos" : "Inactivos"}
             </motion.button>
+
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
+              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center gap-2"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleSortByDate}
             >
-              <FiFilter />
-              {sortOrder === "asc" ? "Fecha Asc" : "Fecha Desc"}
+              <FiFilter /> Fecha ({sortOrder === "asc" ? "Asc" : "Desc"})
             </motion.button>
+
             <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleExportToExcel}
             >
               <FiDownload /> Exportar
             </motion.button>
+
             <motion.button
               className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={openModalCrear}
             >
               <FiPlusCircle /> Agregar Manager
@@ -359,71 +454,99 @@ const Manager = () => {
 
         <motion.div
           className="grid gap-6"
-          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", display: "grid" }}
-          variants={containerVariants}
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+          }}
           initial="hidden"
           animate="visible"
           data-aos="fade-up"
-          data-aos-easing="linear"
-          data-aos-duration="1500"
         >
           <AnimatePresence>
-            {filteredManagers.map((manager, index) => (
+            {filteredManagers.map((manager) => (
               <motion.div
-                key={index}
+                key={manager.idManager}
                 className="glass-card p-6 rounded-t-3xl rounded-br-3xl rounded-bl-xl shadow-md transition-all duration-300 hover:scale-[1.015]"
-                variants={cardVariants}
+                variants={{
+                  hidden: { y: 20, opacity: 0 },
+                  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
+                  hover: { y: -5, boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)" }
+                }}
                 whileHover="hover"
                 layout
               >
-                {/* Encabezado: nombre, badge y botones */}
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-white">{manager.apellidos} {manager.nombres}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${manager.estado ? "bg-green-500" : "bg-red-500"}`}>
-                      {manager.estado ? "Activo" : "Inactivo"}
-                    </span>
+                <div className="flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-white">{manager.nombres} {manager.apellidos}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${manager.estado === "activo" ? "bg-green-500" : "bg-red-500"
+                        }`}>
+                        {manager.estado === "activo" ? "Activo" : "Inactivo"}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        className="p-2 bg-blue-500 rounded-full"
+                        onClick={() => openModalVer(manager)}
+                      >
+                        <FiEye className="text-white" />
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        className="p-2 bg-yellow-500 rounded-full"
+                        onClick={() => openModalEditar(manager)}
+                      >
+                        <FiEdit className="text-white" />
+                      </motion.button>
+                      {manager.estado === "activo" ? (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 bg-red-500 rounded-full"
+                          onClick={() => handleDeleteManager(manager.idManager, `${manager.nombres} ${manager.apellidos}`)}
+                        >
+                          <FiTrash2 className="text-white" />
+                        </motion.button>
+                      ) : (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 bg-green-500 rounded-full"
+                          onClick={() => handleRestoreManager(manager.idManager, `${manager.nombres} ${manager.apellidos}`)}
+                        >
+                          <FiRefreshCcw className="text-white" />
+                        </motion.button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <motion.button whileTap={{ scale: 0.9 }} className="p-2 bg-blue-500 rounded-full" onClick={() => openModalVer(index)}>
-                      <FiEye className="text-white" />
-                    </motion.button>
-                    <motion.button whileTap={{ scale: 0.9 }} className="p-2 bg-yellow-500 rounded-full" onClick={() => openModalEditar(index)}>
-                      <FiEdit className="text-white" />
-                    </motion.button>
-                    {manager.estado ? (
-                      <motion.button whileTap={{ scale: 0.9 }} className="p-2 bg-red-500 rounded-full" onClick={() => handleDeleteManager(index)}>
-                        <FiTrash2 className="text-white" />
-                      </motion.button>
+
+                  <div className="mb-4 rounded-lg overflow-hidden flex items-center justify-center">
+                    {manager.foto ? (
+                      <img
+                        src={manager.foto}
+                        className="w-32 h-32 rounded-full object-cover"
+                        alt={`${manager.nombres} ${manager.apellidos}`}
+                      />
                     ) : (
-                      <motion.button whileTap={{ scale: 0.9 }} className="p-2 bg-green-500 rounded-full" onClick={() => handleRestoreManager(index)}>
-                        <FiRefreshCcw className="text-white" />
-                      </motion.button>
+                      <div className="w-32 h-32 bg-gray-700 rounded-full flex items-center justify-center">
+                        <span className="text-gray-400">Sin imagen</span>
+                      </div>
                     )}
                   </div>
-                </div>
 
-                {/* Imagen */} <div className="mb-4 rounded-lg overflow-hidden"> {manager.foto ? (typeof manager.foto === "string" ?
-                  (<img src={manager.foto} className="w-32 h-32 object-cover rounded-full mx-auto" alt="Manager" />
-
-                  ) : (<img src={URL.createObjectURL(manager.foto)} className="w-32 h-32 object-cover rounded-full mx-auto" alt="Manager" />)) :
-                  (<div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center">
-                    <span className="text-gray-400"> Sin foto</span> </div>)}
-                </div>
-
-                {/* Información adicional */}
-                <div className="flex-grow space-y-3 text-white text-sm">
-                  <div>
-                    <p className="text-gray-400">Correo:</p>
-                    <p className="font-medium break-all">{manager.correo}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Género:</p>
-                    <p>{manager.genero}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Fecha de ingreso:</p>
-                    <p>{manager.fecha}</p>
+                  <div className="flex-grow space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-400">Correo</p>
+                      <p className="font-medium break-all">{manager.correo}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Género</p>
+                      <p className="font-medium">{manager.genero}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Fecha de ingreso</p>
+                      <p className="font-medium">{manager.fecha}</p>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -431,7 +554,6 @@ const Manager = () => {
           </AnimatePresence>
         </motion.div>
 
-        {/* MODALES */}
         <AnimatePresence>
           {modalCrear && (
             <ModalFormulario
@@ -441,6 +563,9 @@ const Manager = () => {
               onSave={handleAddManager}
               errors={errors}
               title="Agregar Manager"
+              previewFotoUrl={previewFoto}
+              generos={generos}
+              isEditing={false}
             />
           )}
 
@@ -452,11 +577,14 @@ const Manager = () => {
               onSave={handleUpdateManager}
               errors={errors}
               title="Editar Manager"
+              previewFotoUrl={previewFoto}
+              generos={generos}
+              isEditing={true}
             />
           )}
 
-          {modalVer && (
-            <ModalVer data={managers[currentManager]} onClose={closeModal} />
+          {modalVer && currentManager && (
+            <ModalVer data={currentManager} onClose={closeModal} />
           )}
         </AnimatePresence>
       </div>
@@ -464,188 +592,236 @@ const Manager = () => {
   );
 };
 
-/* -------------------------------------------------------------------------- */
-/*                         SUBCOMPONENTES – MODALES                           */
-/* -------------------------------------------------------------------------- */
-const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
-  >
+const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, previewFotoUrl, generos, isEditing }) => {
+  return (
     <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
     >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
+      <div
+        className="fixed inset-0 bg-black bg-opacity-70"
+        onClick={onClose}
+      />
 
-      {/* Foto */}
-      <div className="mb-4 text-center">
-        <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
-        <label
-          htmlFor="foto"
-          className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
-        >
-          Subir Imagen
-          <input id="foto" type="file" name="foto" onChange={onChange} className="hidden" />
-        </label>
-      </div>
-
-      {/* Inputs */}
-      <div className="space-y-4">
-        {[
-          { label: "Apellidos", name: "apellidos", type: "text" },
-          { label: "Nombres", name: "nombres", type: "text" },
-          { label: "Correo", name: "correo", type: "email" },
-          { label: "Fecha", name: "fecha", type: "date" },
-        ].map((field) => (
-          <div key={field.name}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
-            <input
-              type={field.type}
-              name={field.name}
-              value={formData[field.name]}
-              onChange={onChange}
-              className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors[field.name] ? "border-red-500" : ""
-                }`}
-            />
-            {errors[field.name] && <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>}
-          </div>
-        ))}
-
-        {/* Select género */}
-        <div>
-          <label className="block text-sm font-semibold mb-1 text-gray-300">Género</label>
-          <select
-            name="genero"
-            value={formData.genero}
-            onChange={onChange}
-            className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors.genero ? "border-red-500" : ""
-              }`}
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="relative glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white border-opacity-20"
+      >
+        <div className="sticky top-0 z-10 bg-gray-800 bg-opacity-90 p-4 border-b border-gray-700 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-white">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white focus:outline-none"
           >
-            <option value="">Selecciona un género</option>
-            <option value="Masculino">Masculino</option>
-            <option value="Femenino">Femenino</option>
-          </select>
-          {errors.genero && <p className="text-red-500 text-sm mt-1">{errors.genero}</p>}
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-      </div>
 
-      {/* Botones */}
-      <div className="flex justify-end space-x-3 mt-8">
-        <motion.button
-          onClick={onClose}
-          className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Cancelar
-        </motion.button>
-        <motion.button
-          onClick={onSave}
-          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Guardar
-        </motion.button>
-      </div>
-    </motion.div>
-  </motion.div>
-);
-
-const ModalVer = ({ data, onClose }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
-  >
-    <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
-    >
-      <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Manager</h2>
-
-      <div className="space-y-4">
-        {/* Foto */}
-        <div className="text-center">
-          {data.foto ? (
-            typeof data.foto === "string" ? (
-              <img src={data.foto} alt="Manager" className="w-32 h-32 rounded-lg object-cover mx-auto" />
-            ) : (
+        <div className="overflow-y-auto p-6" style={{ maxHeight: 'calc(90vh - 64px)' }}>
+          <div className="mb-4 text-center">
+            <label className="block text-sm font-semibold mb-2 text-gray-300">Foto de Perfil</label>
+            {previewFotoUrl && (
               <img
-                src={URL.createObjectURL(data.foto)}
-                alt="Manager"
-                className="w-32 h-32 rounded-lg object-cover mx-auto"
+                src={previewFotoUrl}
+                alt="Vista previa"
+                className="w-32 h-32 rounded-full object-cover mx-auto mb-4"
               />
-            )
-          ) : (
-            <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
-              <span className="text-gray-400">Sin foto</span>
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
-        {[
-          { label: "Apellidos", value: data.apellidos },
-          { label: "Nombres", value: data.nombres },
-          { label: "Correo", value: data.correo },
-          { label: "Género", value: data.genero },
-          { label: "Fecha", value: data.fecha },
-        ].map((item) => (
-          <div key={item.label}>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
-            <p className="text-lg text-white break-words">{item.value}</p>
+            )}
+            <label
+              htmlFor="foto"
+              className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
+            >
+              {previewFotoUrl ? "Cambiar Foto" : "Subir Foto"}
+              <input
+                id="foto"
+                type="file"
+                name="foto"
+                onChange={onChange}
+                className="hidden"
+                accept="image/*"
+              />
+            </label>
+            {errors.foto && (
+              <p className="text-red-500 text-sm mt-1">{errors.foto}</p>
+            )}
           </div>
-        ))}
 
-        {/* Estado */}
-        <div>
-          <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
-          <span
-            className={`px-4 py-2 rounded-full text-sm font-bold ${data.estado ? "bg-green-500 text-white" : "bg-red-500 text-white"
-              }`}
-          >
-            {data.estado ? "Activo" : "Inactivo"}
-          </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { label: "Apellidos", name: "apellidos", type: "text" },
+              { label: "Nombres", name: "nombres", type: "text" },
+              { label: "Correo", name: "correo", type: "email" },
+              { label: "Fecha", name: "fecha", type: "date" },
+            ].map((field) => (
+              <div key={field.name}>
+                <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={onChange}
+                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors[field.name] ? "border-red-500" : ""
+                    }`}
+                />
+                {errors[field.name] && (
+                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                )}
+              </div>
+            ))}
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold mb-1 text-gray-300">Género</label>
+              <select
+                name="genero"
+                value={formData.genero}
+                onChange={onChange}
+                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors.genero ? "border-red-500" : ""
+                  }`}
+              >
+                <option value="">Selecciona un género</option>
+                {generos.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+              {errors.genero && <p className="text-red-500 text-sm mt-1">{errors.genero}</p>}
+            </div>
+
+            {isEditing && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
+                <select
+                  name="estado"
+                  value={formData.estado}
+                  onChange={onChange}
+                  className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
+                >
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                </select>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Cierre */}
-      <div className="flex justify-end mt-8">
-        <motion.button
-          onClick={onClose}
-          className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Cerrar
-        </motion.button>
-      </div>
+        <div className="sticky bottom-0 bg-gray-800 bg-opacity-90 p-4 border-t border-gray-700 flex justify-end space-x-3">
+          <motion.button
+            onClick={onClose}
+            className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            Cancelar
+          </motion.button>
+          <motion.button
+            onClick={onSave}
+            className="px-6 py-2 bg-[#00FF8C] text-gray-900 rounded-lg hover:bg-[#39FF14] transition font-semibold"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            Guardar
+          </motion.button>
+        </div>
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
-
-/* -------------------------------------------------------------------------- */
-/*                                PROPTYPES                                   */
-/* -------------------------------------------------------------------------- */
-ModalFormulario.propTypes = {
-  formData: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onChange: PropTypes.func.isRequired,
-  onSave: PropTypes.func.isRequired,
-  errors: PropTypes.object.isRequired,
-  title: PropTypes.string.isRequired,
+  );
 };
 
-ModalVer.propTypes = {
-  data: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
+const ModalVer = ({ data, onClose }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+    >
+      <div
+        className="fixed inset-0 bg-black bg-opacity-70"
+        onClick={onClose}
+      />
+
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="relative glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white border-opacity-20"
+      >
+        <div className="sticky top-0 z-10 bg-gray-800 bg-opacity-90 p-4 border-b border-gray-700 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-white">Detalles del Manager</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white focus:outline-none"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-6" style={{ maxHeight: 'calc(90vh - 64px)' }}>
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-shrink-0">
+              <div className="w-48 h-48 rounded-full overflow-hidden bg-gray-700 flex items-center justify-center">
+                {data.foto ? (
+                  <img
+                    src={data.foto}
+                    alt="Manager"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-gray-400">Sin imagen</span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-grow">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: "ID Manager", value: data.idManager },
+                  { label: "Apellidos", value: data.apellidos },
+                  { label: "Nombres", value: data.nombres },
+                  { label: "Correo", value: data.correo },
+                  { label: "Género", value: data.genero },
+                  { label: "Fecha de ingreso", value: data.fecha },
+                ].map((item) => (
+                  <div key={item.label}>
+                    <label className="block text-sm font-semibold text-gray-400">{item.label}</label>
+                    <p className="text-lg text-white mt-1">{item.value || 'N/A'}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6">
+                <label className="block text-sm font-semibold text-gray-400">Estado</label>
+                <span
+                  className={`inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold ${data.estado === "activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                    }`}
+                >
+                  {data.estado === "activo" ? "Activo" : "Inactivo"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-gray-800 bg-opacity-90 p-4 border-t border-gray-700 flex justify-end">
+          <motion.button
+            onClick={onClose}
+            className="px-6 py-2 bg-[#00FF8C] text-gray-900 rounded-lg hover:bg-[#39FF14] transition font-semibold"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            Cerrar
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 };
 
 export default Manager;

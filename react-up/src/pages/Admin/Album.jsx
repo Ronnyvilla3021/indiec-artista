@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiEye,
@@ -14,129 +13,211 @@ import {
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
+import Swal from "sweetalert2";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import axios from "axios";
+
+// Configuración de Axios
+const api = axios.create({
+  baseURL: 'http://localhost:9000/album',
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    let errorMessage = "Ocurrió un error inesperado.";
+    if (error.response) {
+      errorMessage = error.response.data.message || error.response.statusText;
+      console.error("Error en la respuesta del API:", error.response.data);
+    } else if (error.request) {
+      errorMessage = "No se pudo conectar con el servidor. Verifica tu conexión.";
+      console.error("Error de conexión:", error.request);
+    } else {
+      errorMessage = error.message;
+      console.error("Error de Axios:", error.message);
+    }
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: errorMessage,
+      background: "#1a1a1a",
+      confirmButtonColor: "#00FF8C",
+      color: "#ffffff",
+    });
+    return Promise.reject(error);
+  }
+);
 
 const Album = () => {
-  const [albums, setAlbums] = useState([
-    {
-      foto: "https://i.etsystatic.com/9330688/r/il/dfd838/1700622434/il_1080xN.1700622434_1r5l.jpg",
-      titulo: "Thriller",
-      artista: "Michael Jackson",
-      año: 1982,
-      genero: "Pop",
-      url: "https://open.spotify.com/album/2ANVost0y2y52ema1E9xAZ",
-      activo: true,
-    },
-    {
-      foto: "https://cdn1.eldia.com/072021/1627255515074.jpg",
-      titulo: "Back in Black",
-      artista: "AC/DC",
-      año: 1980,
-      genero: "Rock",
-      url: "https://open.spotify.com/album/7eyQXxuf2nGj9d2367Gi5f",
-      activo: true,
-    },
-    {
-      foto: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRv3Xi_it_gxC07Nf2XcVbpzpD_BdqPYIIzLb9x_Og5MRWhw7VxafciBiDVus7LoTR59kQ&usqp=CAU",
-      titulo: " Master of Puppets",
-      artista: "Metallica",
-      año: 1990,
-      genero: "Rock",
-      url: "https://open.spotify.com/album/7eyQXxuf2nGj9d2367Gi5f",
-      activo: true,
-    },
-  ]);
+  useEffect(() => {
+    AOS.init({ once: true, mirror: false });
+    AOS.refresh();
+    fetchAlbumes();
+  }, []);
 
+  const [albumes, setAlbumes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalVer, setModalVer] = useState(false);
   const [formData, setFormData] = useState({
+    idAlbum: null,
     foto: null,
     titulo: "",
     artista: "",
     año: "",
     genero: "",
-    url: ""
+    url: "",
+    estado: "activo",
+    artistaIdArtista: ""
   });
+  const [previewFoto, setPreviewFoto] = useState(null);
   const [currentAlbum, setCurrentAlbum] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterActive, setFilterActive] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [errors, setErrors] = useState({});
   const [sortOrder, setSortOrder] = useState("asc");
 
   const generos = [
-    "Rock",
-    "Pop",
-    "Jazz",
-    "Clásica",
-    "Electrónica",
-    "Hip-Hop",
-    "Reggae",
-    "Metal",
-    "Rock Alternativo",
-    "Indie"
+    "Rock", "Pop", "Jazz", "Clásica", "Electrónica",
+    "Hip-Hop", "Reggae", "Metal", "Salsa", "Merengue",
+    "Cumbia", "Bachata", "Reggaeton", "Indie", "Blues", "Country"
   ];
 
-  useEffect(() => {
-    AOS.init({
-      once: true,
-      mirror: false,
-    });
-    AOS.refresh();
-  }, []);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const cardVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 }
-    },
-    hover: {
-      y: -5,
-      boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)"
+  const fetchAlbumes = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/lista');
+      const albumesFetched = response.data.data.map(album => ({
+        idAlbum: album.idAlbum,
+        titulo: album.titulo,
+        artista: album.artista,
+        año: album.año,
+        estado: album.estado,
+        genero: album.detallesMongo?.genero || 'N/A',
+        url: album.detallesMongo?.url || '',
+        foto: album.detallesMongo?.imagen ? `${api.defaults.baseURL}/uploads/${album.detallesMongo.imagen}` : null,
+        artistaIdArtista: album.artistaIdArtista || ''
+      }));
+      setAlbumes(albumesFetched);
+    } catch (error) {
+      console.error("Error al cargar álbumes:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const buttonVariants = {
-    hover: { scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" },
-    tap: { scale: 0.95 }
+  const handleAddAlbum = async () => {
+    if (!validateForm()) return;
+
+    const dataToSend = new FormData();
+    dataToSend.append('titulo', formData.titulo);
+    dataToSend.append('artista', formData.artista);
+    dataToSend.append('año', formData.año);
+    dataToSend.append('genero', formData.genero);
+    dataToSend.append('url', formData.url);
+    dataToSend.append('artistaIdArtista', formData.artistaIdArtista);
+    if (formData.foto) {
+      dataToSend.append('imagen', formData.foto);
+    }
+
+    try {
+      const response = await api.post('/crear', dataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      Swal.fire({
+        icon: "success",
+        title: "Álbum agregado",
+        text: response.data.message || `El álbum "${formData.titulo}" fue agregado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      closeModal();
+      fetchAlbumes();
+    } catch (error) {
+      console.error("Error al agregar álbum:", error);
+    }
   };
 
-  const handleSearchChange = (e) => setSearchTerm(e.target.value);
-  
-  const handleExportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredAlbums);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Álbumes");
-    XLSX.writeFile(workbook, "albumes.xlsx");
+  const handleUpdateAlbum = async () => {
+    if (!validateForm()) return;
+    if (!formData.idAlbum) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "ID de álbum no encontrado para actualizar.",
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      return;
+    }
+
+    const dataToSend = new FormData();
+    dataToSend.append('titulo', formData.titulo);
+    dataToSend.append('artista', formData.artista);
+    dataToSend.append('año', formData.año);
+    dataToSend.append('genero', formData.genero);
+    dataToSend.append('url', formData.url);
+    dataToSend.append('artistaIdArtista', formData.artistaIdArtista);
+    if (formData.foto && typeof formData.foto !== 'string') {
+      dataToSend.append('imagen', formData.foto);
+    }
+
+    try {
+      const response = await api.put(`/actualizar/${formData.idAlbum}`, dataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      Swal.fire({
+        icon: "success",
+        title: "Álbum actualizado",
+        text: response.data.message || `El álbum "${formData.titulo}" fue actualizado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      closeModal();
+      fetchAlbumes();
+    } catch (error) {
+      console.error("Error al actualizar álbum:", error);
+    }
   };
 
-  const handleFilterChange = () => {
-    setFilterActive(prev => {
-      if (prev === "all") return "active";
-      if (prev === "active") return "inactive";
-      return "all";
-    });
+  const handleDeleteAlbum = async (idAlbum, titulo) => {
+    try {
+      const response = await api.put(`/desactivar/${idAlbum}`);
+      Swal.fire({
+        icon: "success",
+        title: "Álbum desactivado",
+        text: response.data.message || `El álbum "${titulo}" fue desactivado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      fetchAlbumes();
+    } catch (error) {
+      console.error("Error al desactivar álbum:", error);
+    }
   };
 
-  const handleSortByYear = () => {
-    setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+  const handleRestoreAlbum = async (idAlbum, titulo) => {
+    try {
+      const response = await api.put(`/activar/${idAlbum}`);
+      Swal.fire({
+        icon: "success",
+        title: "Álbum activado",
+        text: response.data.message || `El álbum "${titulo}" fue activado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      fetchAlbumes();
+    } catch (error) {
+      console.error("Error al activar álbum:", error);
+    }
   };
-
-  const filteredAlbums = albums
-    .filter(album => album.titulo.toLowerCase().includes(searchTerm.toLowerCase()))
-    .filter(album => {
-      if (filterActive === "all") return true;
-      return filterActive === "active" ? album.activo : !album.activo;
-    })
-    .sort((a, b) => sortOrder === "asc" ? a.año - b.año : b.año - a.año);
 
   const openModalCrear = () => {
     setFormData({
@@ -145,19 +226,35 @@ const Album = () => {
       artista: "",
       año: "",
       genero: "",
-      url: ""
+      url: "",
+      estado: "activo",
+      artistaIdArtista: ""
     });
+    setPreviewFoto(null);
+    setErrors({});
     setModalCrear(true);
   };
 
-  const openModalEditar = (index) => {
-    setCurrentAlbum(index);
-    setFormData(albums[index]);
+  const openModalEditar = (album) => {
+    setCurrentAlbum(album.idAlbum);
+    setFormData({
+      idAlbum: album.idAlbum,
+      foto: album.foto,
+      titulo: album.titulo,
+      artista: album.artista,
+      año: album.año,
+      genero: album.genero,
+      url: album.url,
+      estado: album.estado,
+      artistaIdArtista: album.artistaIdArtista || ""
+    });
+    setPreviewFoto(album.foto);
+    setErrors({});
     setModalEditar(true);
   };
 
-  const openModalVer = (index) => {
-    setCurrentAlbum(index);
+  const openModalVer = (album) => {
+    setCurrentAlbum(album);
     setModalVer(true);
   };
 
@@ -165,67 +262,101 @@ const Album = () => {
     setModalCrear(false);
     setModalEditar(false);
     setModalVer(false);
+    setErrors({});
+    setCurrentAlbum(null);
   };
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === "foto" ? files[0] : value
-    }));
+    if (name === "foto" && files.length > 0) {
+      const file = files[0];
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewFoto(objectUrl);
+      setFormData((prev) => ({ ...prev, foto: file }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.titulo) newErrors.titulo = "Título obligatorio";
-    if (!formData.artista) newErrors.artista = "Artista obligatorio";
-    if (!formData.año) newErrors.año = "Año obligatorio";
-    if (!formData.genero) newErrors.genero = "Género obligatorio";
-    if (!formData.url) newErrors.url = "URL obligatoria";
+    if (!formData.titulo) newErrors.titulo = "El título es obligatorio";
+    if (!formData.artista) newErrors.artista = "El artista es obligatorio";
+    if (!formData.año) newErrors.año = "El año es obligatorio";
+    if (isNaN(parseInt(formData.año))) newErrors.año = "El año debe ser un número";
+    if (!formData.genero) newErrors.genero = "El género es obligatorio";
+    if (!formData.url) newErrors.url = "La URL es obligatoria";
+    if (!formData.artistaIdArtista) newErrors.artistaIdArtista = "El ID de Artista es obligatorio";
+    if (isNaN(parseInt(formData.artistaIdArtista))) newErrors.artistaIdArtista = "El ID de Artista debe ser un número";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAddAlbum = () => {
-    if (!validateForm()) return;
-    setAlbums([...albums, { ...formData, activo: true }]);
-    Swal.fire("Éxito", "Álbum agregado", "success");
-    closeModal();
+  const handleSearchChange = (e) => setSearchTerm(e.target.value);
+
+  const handleFilterStatusChange = () => {
+    setFilterStatus((prev) => {
+      if (prev === "all") return "active";
+      if (prev === "active") return "inactive";
+      return "all";
+    });
   };
 
-  const handleUpdateAlbum = () => {
-    if (!validateForm()) return;
-    const updated = [...albums];
-    updated[currentAlbum] = formData;
-    setAlbums(updated);
-    Swal.fire("Éxito", "Álbum actualizado", "success");
-    closeModal();
+  const handleExportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredAlbumes.map((a) => ({
+        ID_SQL: a.idAlbum,
+        Título: a.titulo,
+        Artista: a.artista,
+        Año: a.año,
+        Género: a.genero,
+        URL: a.url,
+        Estado: a.estado === 'activo' ? 'Activo' : 'Inactivo',
+      }))
+    );
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Álbumes");
+    XLSX.writeFile(workbook, "albumes.xlsx");
   };
 
-  const handleDeleteAlbum = (index) => {
-    const updated = [...albums];
-    updated[index].activo = false;
-    setAlbums(updated);
-    Swal.fire("Info", "Álbum desactivado", "info");
-  };
+  const handleSortByYear = () =>
+    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
 
-  const handleRestoreAlbum = (index) => {
-    const updated = [...albums];
-    updated[index].activo = true;
-    setAlbums(updated);
-    Swal.fire("Éxito", "Álbum activado", "success");
-  };
+  const filteredAlbumes = albumes
+    .filter((a) => a.titulo.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((a) => {
+      if (filterStatus === "all") return true;
+      return filterStatus === "active" ? a.estado === "activo" : a.estado === "inactivo";
+    })
+    .sort((a, b) => {
+      if (sortOrder === "asc") {
+        return a.año - b.año;
+      } else {
+        return b.año - a.año;
+      }
+    });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
-      <div className="absolute inset-0 z-0 opacity-20" style={{
-        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 50%),
-                    radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
-        backgroundSize: "200% 200%",
-        animation: "bg-pan 20s ease infinite",
-      }}></div>
+      <div
+        className="absolute inset-0 z-0 opacity-20"
+        style={{
+          background: `radial-gradient(circle at top left, #39FF14 0%, transparent 50%),
+                         radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+          backgroundSize: "200% 200%",
+          animation: "bg-pan 20s ease infinite",
+        }}
+      ></div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes bg-pan {
           0% { background-position: 0% 0%; }
           50% { background-position: 100% 100%; }
@@ -249,19 +380,12 @@ const Album = () => {
           data-aos="fade-down"
         >
           <div>
-            <h1 className="text-4xl font-bold">Álbumes Musicales</h1>
-            <p className="text-lg opacity-90">Administra tu colección de álbumes</p>
+            <h1 className="text-4xl font-bold">Álbumes</h1>
+            <p className="text-lg opacity-90">Administra tus álbumes</p>
           </div>
-
-          <motion.div
-            className="glass-card p-3 rounded-lg flex items-center"
-            variants={cardVariants}
-            data-aos="fade-down"
-          >
+          <motion.div className="glass-card p-3 rounded-lg flex items-center">
             <nav className="flex items-center space-x-2 text-sm">
-              <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
-                Inicio
-              </Link>
+              <Link to="/dashboard" className="text-[#00FF8C] hover:underline">Inicio</Link>
               <span className="text-gray-500">/</span>
               <span className="text-white">Álbumes</span>
             </nav>
@@ -270,7 +394,12 @@ const Album = () => {
 
         <motion.div
           className="glass-card p-6 mb-8 flex flex-wrap gap-4"
-          variants={cardVariants}
+          variants={{
+            hidden: { y: 20, opacity: 0 },
+            visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+          }}
+          initial="hidden"
+          animate="visible"
           data-aos="fade-down"
         >
           <div className="relative flex-grow">
@@ -284,34 +413,30 @@ const Album = () => {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-              onClick={handleFilterChange}
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleFilterStatusChange}
             >
               <FiFilter />
-              {filterActive === "all" ? "Todos" : filterActive === "active" ? "Activos" : "Inactivos"}
+              {filterStatus === "all" ? "Todos" : filterStatus === "active" ? "Activos" : "Inactivos"}
             </motion.button>
 
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
+              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center gap-2"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleSortByYear}
             >
-              <FiFilter />
-              {sortOrder === "asc" ? "Año Asc" : "Año Desc"}
+              <FiFilter /> Año ({sortOrder === "asc" ? "Asc" : "Desc"})
             </motion.button>
 
             <motion.button
               className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleExportToExcel}
             >
               <FiDownload /> Exportar
@@ -319,9 +444,8 @@ const Album = () => {
 
             <motion.button
               className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={openModalCrear}
             >
               <FiPlusCircle /> Agregar Álbum
@@ -330,18 +454,26 @@ const Album = () => {
         </motion.div>
 
         <motion.div
-          className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-          variants={containerVariants}
+          className="grid gap-6"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+          }}
           initial="hidden"
           animate="visible"
           data-aos="fade-up"
         >
           <AnimatePresence>
-            {filteredAlbums.map((album, index) => (
+            {filteredAlbumes.map((album) => (
               <motion.div
-                key={index}
+                key={album.idAlbum}
                 className="glass-card p-6 rounded-t-3xl rounded-br-3xl rounded-bl-xl shadow-md transition-all duration-300 hover:scale-[1.015]"
-                variants={cardVariants}
+                variants={{
+                  hidden: { y: 20, opacity: 0 },
+                  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
+                  hover: { y: -5, boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)" }
+                }}
                 whileHover="hover"
                 layout
               >
@@ -349,30 +481,31 @@ const Album = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-xl font-bold text-white">{album.titulo}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${album.activo ? "bg-green-500" : "bg-red-500"}`}>
-                        {album.activo ? "Activo" : "Inactivo"}
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${album.estado === "activo" ? "bg-green-500" : "bg-red-500"
+                        }`}>
+                        {album.estado === "activo" ? "Activo" : "Inactivo"}
                       </span>
                     </div>
                     <div className="flex gap-2">
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         className="p-2 bg-blue-500 rounded-full"
-                        onClick={() => openModalVer(index)}
+                        onClick={() => openModalVer(album)}
                       >
                         <FiEye className="text-white" />
                       </motion.button>
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         className="p-2 bg-yellow-500 rounded-full"
-                        onClick={() => openModalEditar(index)}
+                        onClick={() => openModalEditar(album)}
                       >
                         <FiEdit className="text-white" />
                       </motion.button>
-                      {album.activo ? (
+                      {album.estado === "activo" ? (
                         <motion.button
                           whileTap={{ scale: 0.9 }}
                           className="p-2 bg-red-500 rounded-full"
-                          onClick={() => handleDeleteAlbum(index)}
+                          onClick={() => handleDeleteAlbum(album.idAlbum, album.titulo)}
                         >
                           <FiTrash2 className="text-white" />
                         </motion.button>
@@ -380,7 +513,7 @@ const Album = () => {
                         <motion.button
                           whileTap={{ scale: 0.9 }}
                           className="p-2 bg-green-500 rounded-full"
-                          onClick={() => handleRestoreAlbum(index)}
+                          onClick={() => handleRestoreAlbum(album.idAlbum, album.titulo)}
                         >
                           <FiRefreshCcw className="text-white" />
                         </motion.button>
@@ -391,7 +524,7 @@ const Album = () => {
                   <div className="mb-4 rounded-lg overflow-hidden">
                     {album.foto ? (
                       <img
-                        src={typeof album.foto === 'string' ? album.foto : URL.createObjectURL(album.foto)}
+                        src={album.foto}
                         className="w-full h-48 object-cover rounded-lg"
                         alt={album.titulo}
                       />
@@ -407,17 +540,14 @@ const Album = () => {
                       <p className="text-sm text-gray-400">Artista</p>
                       <p className="font-medium">{album.artista}</p>
                     </div>
-
                     <div>
                       <p className="text-sm text-gray-400">Año</p>
                       <p className="font-medium">{album.año}</p>
                     </div>
-
                     <div>
                       <p className="text-sm text-gray-400">Género</p>
                       <p className="font-medium">{album.genero}</p>
                     </div>
-
                     <div>
                       <p className="text-sm text-gray-400">Enlace</p>
                       <div className="flex items-center gap-2">
@@ -439,7 +569,6 @@ const Album = () => {
           </AnimatePresence>
         </motion.div>
 
-        {/* Modales */}
         <AnimatePresence>
           {modalCrear && (
             <ModalFormulario
@@ -447,9 +576,11 @@ const Album = () => {
               onClose={closeModal}
               onChange={handleInputChange}
               onSave={handleAddAlbum}
-              generos={generos}
               errors={errors}
               title="Agregar Álbum"
+              previewFotoUrl={previewFoto}
+              generos={generos}
+              isEditing={false}
             />
           )}
 
@@ -459,17 +590,16 @@ const Album = () => {
               onClose={closeModal}
               onChange={handleInputChange}
               onSave={handleUpdateAlbum}
-              generos={generos}
               errors={errors}
               title="Editar Álbum"
+              previewFotoUrl={previewFoto}
+              generos={generos}
+              isEditing={true}
             />
           )}
 
-          {modalVer && (
-            <ModalVer
-              data={albums[currentAlbum]}
-              onClose={closeModal}
-            />
+          {modalVer && currentAlbum && (
+            <ModalVer data={currentAlbum} onClose={closeModal} />
           )}
         </AnimatePresence>
       </div>
@@ -477,122 +607,141 @@ const Album = () => {
   );
 };
 
-// Componente ModalFormulario
-const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors, title }) => {
-  const [previewFotoUrl, setPreviewFotoUrl] = useState(null);
-
-  useEffect(() => {
-    if (formData.foto instanceof File) {
-      const objectUrl = URL.createObjectURL(formData.foto);
-      setPreviewFotoUrl(objectUrl);
-      return () => URL.revokeObjectURL(objectUrl);
-    } else if (typeof formData.foto === 'string') {
-      setPreviewFotoUrl(formData.foto);
-    } else {
-      setPreviewFotoUrl(null);
-    }
-  }, [formData.foto]);
-
+// Componente ModalFormulario mejorado
+const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, previewFotoUrl, generos, isEditing }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
     >
+      <div
+        className="fixed inset-0 bg-black bg-opacity-70"
+        onClick={onClose}
+      />
+
       <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="relative glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white border-opacity-20"
       >
-        <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
-        
-        <div className="mb-4 text-center">
-          <label className="block text-sm font-semibold mb-2 text-gray-300">Portada del Álbum</label>
-          {previewFotoUrl && (
-            <img
-              src={previewFotoUrl}
-              alt="Vista previa"
-              className="w-32 h-32 rounded-lg object-cover mx-auto mb-4"
-            />
-          )}
-          <label
-            htmlFor="foto"
-            className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
+        <div className="sticky top-0 z-10 bg-gray-800 bg-opacity-90 p-4 border-b border-gray-700 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-white">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white focus:outline-none"
           >
-            {previewFotoUrl ? "Cambiar Imagen" : "Subir Imagen"}
-            <input
-              id="foto"
-              type="file"
-              name="foto"
-              onChange={onChange}
-              className="hidden"
-              accept="image/*"
-            />
-          </label>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <div className="space-y-4">
-          {[
-            { label: "Título del Álbum", name: "titulo", type: "text" },
-            { label: "Artista", name: "artista", type: "text" },
-            { label: "Año de Lanzamiento", name: "año", type: "number" },
-            { label: "Enlace", name: "url", type: "text" },
-          ].map((field) => (
-            <div key={field.name}>
-              <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
-              <input
-                type={field.type}
-                name={field.name}
-                value={formData[field.name]}
-                onChange={onChange}
-                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                  errors[field.name] ? "border-red-500" : ""
-                }`}
+        <div className="overflow-y-auto p-6" style={{ maxHeight: 'calc(90vh - 64px)' }}>
+          <div className="mb-4 text-center">
+            <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen de Portada</label>
+            {previewFotoUrl && (
+              <img
+                src={previewFotoUrl}
+                alt="Vista previa"
+                className="w-32 h-32 rounded-lg object-cover mx-auto mb-4"
               />
-              {errors[field.name] && (
-                <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
-              )}
-            </div>
-          ))}
-
-          <div>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">Género</label>
-            <select
-              name="genero"
-              value={formData.genero}
-              onChange={onChange}
-              className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                errors.genero ? "border-red-500" : ""
-              }`}
+            )}
+            <label
+              htmlFor="foto"
+              className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
             >
-              <option value="">Selecciona un género</option>
-              {generos.map((genero, index) => (
-                <option key={index} value={genero}>
-                  {genero}
-                </option>
-              ))}
-            </select>
-            {errors.genero && (
-              <p className="text-red-500 text-sm mt-1">{errors.genero}</p>
+              {previewFotoUrl ? "Cambiar Imagen" : "Subir Imagen"}
+              <input
+                id="foto"
+                type="file"
+                name="foto"
+                onChange={onChange}
+                className="hidden"
+                accept="image/*"
+              />
+            </label>
+            {errors.foto && (
+              <p className="text-red-500 text-sm mt-1">{errors.foto}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { label: "Título", name: "titulo", type: "text", fullWidth: true },
+              { label: "Artista", name: "artista", type: "text", fullWidth: true },
+              { label: "Año", name: "año", type: "number" },
+              { label: "URL", name: "url", type: "url" },
+            ].map((field) => (
+              <div key={field.name} className={field.fullWidth ? 'md:col-span-2' : ''}>
+                <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={onChange}
+                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors[field.name] ? "border-red-500" : ""
+                    }`}
+                />
+                {errors[field.name] && (
+                  <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
+                )}
+              </div>
+            ))}
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold mb-1 text-gray-300">Género</label>
+              <select
+                name="genero"
+                value={formData.genero}
+                onChange={onChange}
+                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors.genero ? "border-red-500" : ""
+                  }`}
+              >
+                <option value="">Selecciona un género</option>
+                {generos.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+              {errors.genero && <p className="text-red-500 text-sm mt-1">{errors.genero}</p>}
+            </div>
+
+            {!isEditing && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold mb-1 text-gray-300">ID Artista</label>
+                <input
+                  type="number"
+                  name="artistaIdArtista"
+                  value={formData.artistaIdArtista}
+                  onChange={onChange}
+                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors.artistaIdArtista ? "border-red-500" : ""
+                    }`}
+                />
+                {errors.artistaIdArtista && (
+                  <p className="text-red-500 text-sm mt-1">{errors.artistaIdArtista}</p>
+                )}
+              </div>
             )}
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 mt-8">
+        <div className="sticky bottom-0 bg-gray-800 bg-opacity-90 p-4 border-t border-gray-700 flex justify-end space-x-3">
           <motion.button
             onClick={onClose}
-            className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
             Cancelar
           </motion.button>
           <motion.button
             onClick={onSave}
-            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="px-6 py-2 bg-[#00FF8C] text-gray-900 rounded-lg hover:bg-[#39FF14] transition font-semibold"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
             Guardar
           </motion.button>
@@ -602,72 +751,100 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generos, errors,
   );
 };
 
-// Componente ModalVer
+// Componente ModalVer mejorado
 const ModalVer = ({ data, onClose }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
     >
+      <div
+        className="fixed inset-0 bg-black bg-opacity-70"
+        onClick={onClose}
+      />
+
       <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white border-opacity-20"
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="relative glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white border-opacity-20"
       >
-        <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Álbum</h2>
-        
-        <div className="space-y-4">
-          <div className="text-center">
-            {data.foto ? (
-              <img
-                src={typeof data.foto === 'string' ? data.foto : URL.createObjectURL(data.foto)}
-                alt="Álbum"
-                className="w-32 h-32 rounded-lg object-cover mx-auto"
-              />
-            ) : (
-              <div className="w-32 h-32 bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
-                <span className="text-gray-400">Sin portada</span>
+        <div className="sticky top-0 z-10 bg-gray-800 bg-opacity-90 p-4 border-b border-gray-700 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-white">Detalles del Álbum</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white focus:outline-none"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-6" style={{ maxHeight: 'calc(90vh - 64px)' }}>
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-shrink-0">
+              <div className="w-48 h-48 rounded-lg overflow-hidden bg-gray-700 flex items-center justify-center">
+                {data.foto ? (
+                  <img
+                    src={data.foto}
+                    alt="Álbum"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-gray-400">Sin imagen</span>
+                )}
               </div>
-            )}
-          </div>
-
-          {[
-            { label: "Título", value: data.titulo },
-            { label: "Artista", value: data.artista },
-            { label: "Año", value: data.año },
-            { label: "Género", value: data.genero },
-            { label: "Enlace", value: data.url },
-          ].map((item) => (
-            <div key={item.label}>
-              <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
-              {item.label === "Enlace" ? (
-                <a href={item.value} target="_blank" rel="noopener noreferrer" className="text-[#00FF8C] hover:underline">
-                  {item.value}
-                </a>
-              ) : (
-                <p className="text-lg text-white">{item.value}</p>
-              )}
             </div>
-          ))}
 
-          <div>
-            <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
-            <span className={`px-4 py-2 rounded-full text-sm font-bold ${
-              data.activo ? "bg-green-500 text-white" : "bg-red-500 text-white"
-            }`}>
-              {data.activo ? "Activo" : "Inactivo"}
-            </span>
+            <div className="flex-grow">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: "ID Álbum", value: data.idAlbum },
+                  { label: "Título", value: data.titulo },
+                  { label: "Artista", value: data.artista },
+                  { label: "Año", value: data.año },
+                  { label: "Género", value: data.genero },
+                  { label: "URL", value: data.url },
+                ].map((item) => (
+                  <div key={item.label}>
+                    <label className="block text-sm font-semibold text-gray-400">{item.label}</label>
+                    {item.label === "URL" ? (
+                      <a 
+                        href={item.value} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-[#00FF8C] hover:underline"
+                      >
+                        {item.value || 'N/A'}
+                      </a>
+                    ) : (
+                      <p className="text-lg text-white mt-1">{item.value || 'N/A'}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6">
+                <label className="block text-sm font-semibold text-gray-400">Estado</label>
+                <span
+                  className={`inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold ${data.estado === "activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                    }`}
+                >
+                  {data.estado === "activo" ? "Activo" : "Inactivo"}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end mt-8">
+        <div className="sticky bottom-0 bg-gray-800 bg-opacity-90 p-4 border-t border-gray-700 flex justify-end">
           <motion.button
             onClick={onClose}
-            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="px-6 py-2 bg-[#00FF8C] text-gray-900 rounded-lg hover:bg-[#39FF14] transition font-semibold"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
             Cerrar
           </motion.button>

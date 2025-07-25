@@ -17,10 +17,15 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import axios from "axios";
 
+
 // Configuración de Axios
 const api = axios.create({
-  baseURL: 'http://localhost:9000',
+  baseURL: 'http://localhost:9000/canciones',
 });
+
+// Añade esto antes de tu llamada Axios
+console.log('URL completa:', api.defaults.baseURL + '/lista');
+
 
 api.interceptors.response.use(
   (response) => response,
@@ -88,7 +93,7 @@ const Musica = () => {
   const fetchCanciones = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/canciones/lista');
+      const response = await api.get('/lista');
       const cancionesFetched = response.data.data.map(song => ({
         idCancion: song.idCancion,
         titulo: song.titulo,
@@ -108,7 +113,28 @@ const Musica = () => {
   };
 
   const handleAddCancion = async () => {
+    try {
+      console.log('Enviando datos:', datosCancion); // ← Verifica qué estás enviando
+
+      const response = await api.post('/crear', datosCancion, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data.success) {
+        setCanciones([...canciones, response.data.data]);
+        alert('Canción agregada exitosamente!');
+      }
+    } catch (error) {
+      console.error('Error detallado:', error.response?.data || error.message);
+      alert(`Error: ${error.response?.data?.message || 'Error al crear canción'}`);
+    }
+
+
     if (!validateForm()) return;
+
+
 
     const dataToSend = new FormData();
     dataToSend.append('titulo', formData.titulo);
@@ -123,7 +149,7 @@ const Musica = () => {
     }
 
     try {
-      const response = await api.post('/canciones/crear', dataToSend, {
+      const response = await api.post('/crear', dataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       Swal.fire({
@@ -345,26 +371,20 @@ const Musica = () => {
         }}
       ></div>
 
-      <style jsx>{`
-        @keyframes bg-pan {
-          0% {
-            background-position: 0% 0%;
-          }
-          50% {
-            background-position: 100% 100%;
-          }
-          100% {
-            background-position: 0% 0%;
-          }
-        }
-        .glass-card {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(15px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-          border-radius: 1.5rem;
-        }
-      `}</style>
+      <style>{`
+  @keyframes bg-pan {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    border-radius: 1.5rem;
+  }
+`}</style>
 
       <div className="relative z-10">
         <motion.div
@@ -476,9 +496,8 @@ const Musica = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-xl font-bold text-white">{cancion.titulo}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        cancion.estado === "activo" ? "bg-green-500" : "bg-red-500"
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${cancion.estado === "activo" ? "bg-green-500" : "bg-red-500"
+                        }`}>
                         {cancion.estado === "activo" ? "Activo" : "Inactivo"}
                       </span>
                     </div>
@@ -604,11 +623,11 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, p
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
     >
-      <div 
+      <div
         className="fixed inset-0 bg-black bg-opacity-70"
         onClick={onClose}
       />
-      
+
       <motion.div
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
@@ -616,7 +635,7 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, p
       >
         <div className="sticky top-0 z-10 bg-gray-800 bg-opacity-90 p-4 border-b border-gray-700 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-white">{title}</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-400 hover:text-white focus:outline-none"
           >
@@ -669,9 +688,8 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, p
                   name={field.name}
                   value={formData[field.name]}
                   onChange={onChange}
-                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                    errors[field.name] ? "border-red-500" : ""
-                  }`}
+                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors[field.name] ? "border-red-500" : ""
+                    }`}
                 />
                 {errors[field.name] && (
                   <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
@@ -685,9 +703,8 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, p
                 name="genero"
                 value={formData.genero}
                 onChange={onChange}
-                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                  errors.genero ? "border-red-500" : ""
-                }`}
+                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors.genero ? "border-red-500" : ""
+                  }`}
               >
                 <option value="">Selecciona un género</option>
                 {generos.map((g) => (
@@ -708,9 +725,8 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, p
                     name="artistaIdArtista"
                     value={formData.artistaIdArtista}
                     onChange={onChange}
-                    className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                      errors.artistaIdArtista ? "border-red-500" : ""
-                    }`}
+                    className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors.artistaIdArtista ? "border-red-500" : ""
+                      }`}
                   />
                   {errors.artistaIdArtista && (
                     <p className="text-red-500 text-sm mt-1">{errors.artistaIdArtista}</p>
@@ -723,9 +739,8 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, p
                     name="albumeIdAlbum"
                     value={formData.albumeIdAlbum}
                     onChange={onChange}
-                    className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${
-                      errors.albumeIdAlbum ? "border-red-500" : ""
-                    }`}
+                    className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors.albumeIdAlbum ? "border-red-500" : ""
+                      }`}
                   />
                   {errors.albumeIdAlbum && (
                     <p className="text-red-500 text-sm mt-1">{errors.albumeIdAlbum}</p>
@@ -768,11 +783,11 @@ const ModalVer = ({ data, onClose }) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
     >
-      <div 
+      <div
         className="fixed inset-0 bg-black bg-opacity-70"
         onClick={onClose}
       />
-      
+
       <motion.div
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
@@ -780,7 +795,7 @@ const ModalVer = ({ data, onClose }) => {
       >
         <div className="sticky top-0 z-10 bg-gray-800 bg-opacity-90 p-4 border-b border-gray-700 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-white">Detalles de la Canción</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-400 hover:text-white focus:outline-none"
           >
@@ -826,9 +841,8 @@ const ModalVer = ({ data, onClose }) => {
               <div className="mt-6">
                 <label className="block text-sm font-semibold text-gray-400">Estado</label>
                 <span
-                  className={`inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold ${
-                    data.estado === "activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-                  }`}
+                  className={`inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold ${data.estado === "activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                    }`}
                 >
                   {data.estado === "activo" ? "Activo" : "Inactivo"}
                 </span>

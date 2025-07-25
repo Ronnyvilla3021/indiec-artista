@@ -1,80 +1,70 @@
 import { useState, useEffect } from "react";
-import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiEye,
   FiEdit,
   FiTrash2,
   FiRefreshCcw,
-  FiFilter,
   FiDownload,
+  FiFilter,
   FiPlusCircle,
   FiSearch,
-  FiArrowUp, // Icon for ascending sort
-  FiArrowDown // Icon for descending sort
+  FiArrowUp,
+  FiArrowDown
 } from "react-icons/fi";
-import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
+import Swal from "sweetalert2";
+import AOS from "aos";
+import "aos/dist/aos.css";
+import axios from "axios";
 import xss from "xss";
-import AOS from 'aos';
-import 'aos/dist/aos.css';
+
+// Configuración de Axios
+const api = axios.create({
+  baseURL: 'http://localhost:9000/eventos',
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    let errorMessage = "Ocurrió un error inesperado.";
+    if (error.response) {
+      errorMessage = error.response.data.message || error.response.statusText;
+      console.error("Error en la respuesta del API:", error.response.data);
+    } else if (error.request) {
+      errorMessage = "No se pudo conectar con el servidor. Verifica tu conexión.";
+      console.error("Error de conexión:", error.request);
+    } else {
+      errorMessage = error.message;
+      console.error("Error de Axios:", error.message);
+    }
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: errorMessage,
+      background: "#1a1a1a",
+      confirmButtonColor: "#00FF8C",
+      color: "#ffffff",
+    });
+    return Promise.reject(error);
+  }
+);
 
 const Eventos = () => {
   useEffect(() => {
-    AOS.init({
-      once: true, // Animations only run once
-      mirror: false, // Do not repeat on reverse scroll
-    });
-    AOS.refresh(); // Force refresh of animations
+    AOS.init({ once: true, mirror: false });
+    AOS.refresh();
+    fetchEventos();
   }, []);
 
-  const [eventos, setEventos] = useState([
-    {
-      id: 'e1', // Unique ID for each event
-      foto: "https://edit.org/img/blog/n/4s2-1024-plantilla-imagen-portada-evento-facebook.webp", // URL de imagen de ejemplo
-      nombreEvento: "Concierto de Rock",
-      generoMusical: "Rock",
-      descripcion: "Un concierto explosivo con las mejores bandas de rock locales y nacionales. ¡No te lo pierdas!",
-      ubicacion: "Auditorio Principal, Centro de Convenciones",
-      fecha: "2025-02-10",
-      contacto: "info@conciertorock.com / 1234567890",
-      capacidad: 500,
-      artistas: "Banda Sonora, Los Rítmicos, Ecos del Tiempo",
-      estado: true,
-    },
-    {
-      id: 'e2', // Unique ID
-      foto: "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/fb-cover-for-the-party-festival-design-template-e557f7cec2750b6e8995031080f35477_screen.jpg?ts=1566566381", // URL de imagen de ejemplo
-      nombreEvento: "Festival de Jazz Internacional",
-      generoMusical: "Jazz",
-      descripcion: "Una noche elegante de jazz con artistas de renombre mundial. Disfruta de la música en un ambiente único.",
-      ubicacion: "Teatro Nacional Sucre",
-      fecha: "2025-03-20",
-      contacto: "jazzfest@example.com / 0987654321",
-      capacidad: 300,
-      artistas: "Cuarteto Azul, Sonya Smith Trio, Big Band Jazz Fusion",
-      estado: true,
-    },
-    {
-      id: 'e3', // Unique ID
-      foto: "https://t3.ftcdn.net/jpg/03/61/47/43/360_F_361474343_gC8Q1vUu8S9PzV4K0L9Lw8FzS7K2y3rD.jpg",
-      nombreEvento: "Exposición de Arte Moderno",
-      generoMusical: "Arte", // Considerar si 'generoMusical' es el campo adecuado para esto o si se necesita uno nuevo
-      descripcion: "Descubre las últimas tendencias en arte moderno de artistas emergentes y consolidados.",
-      ubicacion: "Galería de la Ciudad",
-      fecha: "2025-04-05",
-      contacto: "arteurbano@galeria.com / 1122334455",
-      capacidad: 150,
-      artistas: "Varios artistas contemporáneos",
-      estado: false, // Example of inactive event
-    },
-  ]);
-
+  const [eventos, setEventos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalVer, setModalVer] = useState(false);
   const [formData, setFormData] = useState({
+    idEvento: null,
     foto: null,
     nombreEvento: "",
     generoMusical: "",
@@ -84,12 +74,14 @@ const Eventos = () => {
     contacto: "",
     capacidad: "",
     artistas: "",
+    estado: "activo",
   });
-  const [currentEvento, setCurrentEvento] = useState(null); // Stores the full event object
+  const [previewFoto, setPreviewFoto] = useState(null);
+  const [currentEvento, setCurrentEvento] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterActive, setFilterActive] = useState("all");
-  const [sortOrder, setSortOrder] = useState("asc"); // For sorting by date
+  const [filterStatus, setFilterStatus] = useState("all");
   const [errors, setErrors] = useState({});
+  const [sortOrder, setSortOrder] = useState("asc");
 
   const generosMusicales = [
     "Rock", "Pop", "Jazz", "Electrónica", "Hip-Hop", "Reggae", "Metal",
@@ -98,66 +90,146 @@ const Eventos = () => {
     "World Music", "Otros"
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const cardVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 }
-    },
-    hover: {
-      y: -5,
-      boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)"
+  const fetchEventos = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/lista');
+      const eventosFetched = response.data.data.map(evento => ({
+        idEvento: evento.idEvento,
+        nombreEvento: evento.nombreEvento,
+        generoMusical: evento.generoMusical,
+        descripcion: evento.descripcion,
+        ubicacion: evento.ubicacion,
+        fecha: evento.fecha,
+        contacto: evento.contacto,
+        capacidad: evento.capacidad,
+        artistas: evento.artistas,
+        estado: evento.estado,
+        foto: evento.foto ? `${api.defaults.baseURL}/uploads/${evento.foto}` : null,
+      }));
+      setEventos(eventosFetched);
+    } catch (error) {
+      console.error("Error al cargar eventos:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const buttonVariants = {
-    hover: { scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" },
-    tap: { scale: 0.95 }
+  const handleAddEvento = async () => {
+    if (!validateForm()) return;
+
+    const dataToSend = new FormData();
+    dataToSend.append('nombreEvento', formData.nombreEvento);
+    dataToSend.append('generoMusical', formData.generoMusical);
+    dataToSend.append('descripcion', formData.descripcion);
+    dataToSend.append('ubicacion', formData.ubicacion);
+    dataToSend.append('fecha', formData.fecha);
+    dataToSend.append('contacto', formData.contacto);
+    dataToSend.append('capacidad', formData.capacidad);
+    dataToSend.append('artistas', formData.artistas);
+    if (formData.foto) {
+      dataToSend.append('foto', formData.foto);
+    }
+
+    try {
+      const response = await api.post('/crear', dataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      Swal.fire({
+        icon: "success",
+        title: "Evento agregado",
+        text: response.data.message || `El evento "${formData.nombreEvento}" fue agregado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      closeModal();
+      fetchEventos();
+    } catch (error) {
+      console.error("Error al agregar evento:", error);
+    }
   };
 
-  const handleSearchChange = (e) => setSearchTerm(xss(e.target.value));
+  const handleUpdateEvento = async () => {
+    if (!validateForm()) return;
+    if (!formData.idEvento) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "ID de evento no encontrado para actualizar.",
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      return;
+    }
 
-  const handleExportToExcel = () => {
-    const dataToExport = filteredEventos.map(({ foto, ...rest }) => rest); // Exclude foto for Excel
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Eventos");
-    XLSX.writeFile(workbook, "eventos.xlsx");
+    const dataToSend = new FormData();
+    dataToSend.append('nombreEvento', formData.nombreEvento);
+    dataToSend.append('generoMusical', formData.generoMusical);
+    dataToSend.append('descripcion', formData.descripcion);
+    dataToSend.append('ubicacion', formData.ubicacion);
+    dataToSend.append('fecha', formData.fecha);
+    dataToSend.append('contacto', formData.contacto);
+    dataToSend.append('capacidad', formData.capacidad);
+    dataToSend.append('artistas', formData.artistas);
+    dataToSend.append('estado', formData.estado);
+    if (formData.foto instanceof File) {
+      dataToSend.append('foto', formData.foto);
+    }
+
+    try {
+      const response = await api.put(`/editar/${formData.idEvento}`, dataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      Swal.fire({
+        icon: "success",
+        title: "Evento actualizado",
+        text: response.data.message || `El evento "${formData.nombreEvento}" fue actualizado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      closeModal();
+      fetchEventos();
+    } catch (error) {
+      console.error("Error al actualizar evento:", error);
+    }
   };
 
-  const handleFilterChange = () => {
-    setFilterActive(prev => {
-      if (prev === "all") return "active";
-      if (prev === "active") return "inactive";
-      return "all";
-    });
+  const handleDeleteEvento = async (idEvento, nombreEvento) => {
+    try {
+      const response = await api.put(`/desactivar/${idEvento}`);
+      Swal.fire({
+        icon: "success",
+        title: "Evento desactivado",
+        text: response.data.message || `El evento "${nombreEvento}" fue desactivado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      fetchEventos();
+    } catch (error) {
+      console.error("Error al desactivar evento:", error);
+    }
   };
 
-  const handleSortByDate = () => {
-    setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+  const handleRestoreEvento = async (idEvento, nombreEvento) => {
+    try {
+      const response = await api.put(`/activar/${idEvento}`);
+      Swal.fire({
+        icon: "success",
+        title: "Evento activado",
+        text: response.data.message || `El evento "${nombreEvento}" fue activado exitosamente.`,
+        background: "#1a1a1a",
+        confirmButtonColor: "#00FF8C",
+        color: "#ffffff",
+      });
+      fetchEventos();
+    } catch (error) {
+      console.error("Error al activar evento:", error);
+    }
   };
-
-  const filteredEventos = eventos
-    .filter(evento =>
-      evento.nombreEvento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      evento.generoMusical.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      evento.ubicacion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      evento.artistas.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter(evento => {
-      if (filterActive === "all") return true;
-      return filterActive === "active" ? evento.estado : !evento.estado;
-    })
-    .sort((a, b) => sortOrder === "asc" ?
-      new Date(a.fecha) - new Date(b.fecha) :
-      new Date(b.fecha) - new Date(a.fecha)
-    );
 
   const openModalCrear = () => {
     setFormData({
@@ -170,20 +242,35 @@ const Eventos = () => {
       contacto: "",
       capacidad: "",
       artistas: "",
+      estado: "activo",
     });
+    setPreviewFoto(null);
     setErrors({});
     setModalCrear(true);
   };
 
-  const openModalEditar = (eventoToEdit) => {
-    setCurrentEvento(eventoToEdit);
-    setFormData(eventoToEdit);
+  const openModalEditar = (evento) => {
+    setCurrentEvento(evento.idEvento);
+    setFormData({
+      idEvento: evento.idEvento,
+      foto: evento.foto,
+      nombreEvento: evento.nombreEvento,
+      generoMusical: evento.generoMusical,
+      descripcion: evento.descripcion,
+      ubicacion: evento.ubicacion,
+      fecha: evento.fecha,
+      contacto: evento.contacto,
+      capacidad: evento.capacidad,
+      artistas: evento.artistas,
+      estado: evento.estado,
+    });
+    setPreviewFoto(evento.foto);
     setErrors({});
     setModalEditar(true);
   };
 
-  const openModalVer = (eventoToView) => {
-    setCurrentEvento(eventoToView);
+  const openModalVer = (evento) => {
+    setCurrentEvento(evento);
     setModalVer(true);
   };
 
@@ -191,112 +278,109 @@ const Eventos = () => {
     setModalCrear(false);
     setModalEditar(false);
     setModalVer(false);
-    setCurrentEvento(null);
     setErrors({});
+    setCurrentEvento(null);
   };
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === "foto" ? files[0] : xss(value)
-    }));
+    if (name === "foto" && files && files.length > 0) {
+      const file = files[0];
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewFoto(objectUrl);
+      setFormData((prev) => ({ ...prev, foto: file }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: xss(value) }));
+    }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.nombreEvento) newErrors.nombreEvento = "Nombre del evento es obligatorio.";
-    if (!formData.generoMusical) newErrors.generoMusical = "Género musical es obligatorio.";
-    if (!formData.descripcion) newErrors.descripcion = "Descripción es obligatoria.";
-    if (!formData.ubicacion) newErrors.ubicacion = "Ubicación es obligatoria.";
-    if (!formData.fecha) newErrors.fecha = "Fecha es obligatoria.";
-    if (!formData.contacto) newErrors.contacto = "Contacto es obligatorio.";
-    if (!formData.capacidad || isNaN(formData.capacidad) || formData.capacidad <= 0) {
-      newErrors.capacidad = "Capacidad debe ser un número positivo.";
-    }
-    if (!formData.artistas) newErrors.artistas = "Artistas son obligatorios.";
+    if (!formData.nombreEvento) newErrors.nombreEvento = "El nombre del evento es obligatorio";
+    if (!formData.generoMusical) newErrors.generoMusical = "El género musical es obligatorio";
+    if (!formData.descripcion) newErrors.descripcion = "La descripción es obligatoria";
+    if (!formData.ubicacion) newErrors.ubicacion = "La ubicación es obligatoria";
+    if (!formData.fecha) newErrors.fecha = "La fecha es obligatoria";
+    if (!formData.contacto) newErrors.contacto = "El contacto es obligatorio";
+    if (!formData.capacidad || isNaN(formData.capacidad) || formData.capacidad <= 0) 
+      newErrors.capacidad = "La capacidad debe ser un número positivo";
+    if (!formData.artistas) newErrors.artistas = "Los artistas son obligatorios";
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAddEvento = () => {
-    if (!validateForm()) return;
-    setEventos([...eventos, { ...formData, id: Date.now().toString(), estado: true }]);
-    Swal.fire("Éxito", "Evento agregado exitosamente", "success");
-    closeModal();
-  };
+  const handleSearchChange = (e) => setSearchTerm(xss(e.target.value));
 
-  const handleUpdateEvento = () => {
-    if (!validateForm()) return;
-    setEventos(prevEventos => prevEventos.map(evento =>
-      evento.id === currentEvento.id ? { ...formData, id: currentEvento.id } : evento
-    ));
-    Swal.fire("Éxito", "Evento actualizado exitosamente", "success");
-    closeModal();
-  };
-
-  const handleDeleteEvento = (eventoToDelete) => {
-    Swal.fire({
-      title: '¿Estás seguro?',
-      text: `¡Estás a punto de desactivar "${eventoToDelete.nombreEvento}"! No podrás revertir esto directamente desde aquí.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, desactívalo',
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setEventos(prevEventos => prevEventos.map(evento =>
-          evento.id === eventoToDelete.id ? { ...evento, estado: false } : evento
-        ));
-        Swal.fire(
-          'Desactivado!',
-          `El evento "${eventoToDelete.nombreEvento}" ha sido desactivado.`,
-          'success'
-        );
-      }
+  const handleFilterStatusChange = () => {
+    setFilterStatus((prev) => {
+      if (prev === "all") return "active";
+      if (prev === "active") return "inactive";
+      return "all";
     });
   };
 
-  const handleRestoreEvento = (eventoToRestore) => {
-    Swal.fire({
-      title: '¿Quieres activar este evento?',
-      text: `El evento "${eventoToRestore.nombreEvento}" estará visible de nuevo.`,
-      icon: 'info',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, actívalo',
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setEventos(prevEventos => prevEventos.map(evento =>
-          evento.id === eventoToRestore.id ? { ...evento, estado: true } : evento
-        ));
-        Swal.fire(
-          'Activado!',
-          `El evento "${eventoToRestore.nombreEvento}" ha sido activado.`,
-          'success'
-        );
+  const handleExportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredEventos.map((e) => ({
+        ID: e.idEvento,
+        "Nombre del Evento": e.nombreEvento,
+        Género: e.generoMusical,
+        Ubicación: e.ubicacion,
+        Fecha: e.fecha,
+        Contacto: e.contacto,
+        Capacidad: e.capacidad,
+        Artistas: e.artistas,
+        Estado: e.estado === 'activo' ? 'Activo' : 'Inactivo',
+      }))
+    );
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Eventos");
+    XLSX.writeFile(workbook, "eventos.xlsx");
+  };
+
+  const handleSortByDate = () => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+
+  const filteredEventos = eventos
+    .filter((e) => 
+      e.nombreEvento.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.generoMusical.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.ubicacion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.artistas.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter((e) => {
+      if (filterStatus === "all") return true;
+      return filterStatus === "active" ? e.estado === "activo" : e.estado === "inactivo";
+    })
+    .sort((a, b) => {
+      if (sortOrder === "asc") {
+        return new Date(a.fecha) - new Date(b.fecha);
+      } else {
+        return new Date(b.fecha) - new Date(a.fecha);
       }
     });
-  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden font-inter">
-      <div className="absolute inset-0 z-0 opacity-20" style={{
-        background: `radial-gradient(circle at top left, #39FF14 0%, transparent 50%),
-                     radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
-        backgroundSize: "200% 200%",
-        animation: "bg-pan 20s ease infinite",
-      }}></div>
+    <div className="flex-1 md:ml-72 bg-gradient-to-br from-gray-950 via-black to-gray-900 text-gray-100 min-h-screen p-8 relative overflow-hidden">
+      <div
+        className="absolute inset-0 z-0 opacity-20"
+        style={{
+          background: `radial-gradient(circle at top left, #39FF14 0%, transparent 50%),
+                       radial-gradient(circle at bottom right, #00FF8C 0%, transparent 30%)`,
+          backgroundSize: "200% 200%",
+          animation: "bg-pan 20s ease infinite",
+        }}
+      ></div>
 
-      <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body {
-          font-family: 'Inter', sans-serif;
-        }
+      <style>{`
         @keyframes bg-pan {
           0% { background-position: 0% 0%; }
           50% { background-position: 100% 100%; }
@@ -325,30 +409,19 @@ const Eventos = () => {
 
       <div className="relative z-10">
         <motion.div
-          className="glass-card p-8 mb-8 flex flex-col md:flex-row justify-between items-center"
+          className="glass-card p-8 mb-8 flex justify-between items-center"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120 }}
           data-aos="fade-down"
-          data-aos-easing="linear"
-          data-aos-duration="1500"
         >
           <div>
-            <h1 className="text-4xl font-bold mb-2 md:mb-0">Gestión de Eventos</h1>
-            <p className="text-lg opacity-90">Administra los eventos del sistema</p>
+            <h1 className="text-4xl font-bold">Eventos</h1>
+            <p className="text-lg opacity-90">Administra tus eventos</p>
           </div>
-
-          <motion.div
-            className="glass-card p-3 rounded-lg flex items-center mt-4 md:mt-0"
-            variants={cardVariants}
-            data-aos="fade-down"
-            data-aos-easing="linear"
-            data-aos-duration="1500"
-          >
+          <motion.div className="glass-card p-3 rounded-lg flex items-center">
             <nav className="flex items-center space-x-2 text-sm">
-              <Link to="/dashboard" className="text-[#00FF8C] hover:underline">
-                Inicio
-              </Link>
+              <Link to="/dashboard" className="text-[#00FF8C] hover:underline">Inicio</Link>
               <span className="text-gray-500">/</span>
               <span className="text-white">Eventos</span>
             </nav>
@@ -356,13 +429,16 @@ const Eventos = () => {
         </motion.div>
 
         <motion.div
-          className="glass-card p-6 mb-8 flex flex-wrap gap-4 items-center justify-between"
-          variants={cardVariants}
+          className="glass-card p-6 mb-8 flex flex-wrap gap-4"
+          variants={{
+            hidden: { y: 20, opacity: 0 },
+            visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+          }}
+          initial="hidden"
+          animate="visible"
           data-aos="fade-down"
-          data-aos-easing="linear"
-          data-aos-duration="1500"
         >
-          <div className="relative flex-grow max-w-full md:max-w-sm">
+          <div className="relative flex-grow">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -373,40 +449,39 @@ const Eventos = () => {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-center md:justify-end">
+          <div className="flex gap-2 flex-wrap">
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2 text-white font-semibold"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-              onClick={handleFilterChange}
+              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleFilterStatusChange}
             >
               <FiFilter />
-              {filterActive === "all" ? "Todos" : filterActive === "active" ? "Activos" : "Inactivos"}
+              {filterStatus === "all" ? "Todos" : filterStatus === "active" ? "Activos" : "Inactivos"}
             </motion.button>
+
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-lg flex items-center gap-2 text-white font-semibold"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
+              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center gap-2"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleSortByDate}
             >
-              {sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />} Fecha {sortOrder === "asc" ? "Asc" : "Desc"}
+              {sortOrder === "asc" ? <FiArrowUp /> : <FiArrowDown />} Fecha ({sortOrder === "asc" ? "Asc" : "Desc"})
             </motion.button>
+
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2 text-white font-semibold"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
+              className="px-4 py-2 bg-gradient-to-r from-green-600 to-lime-600 rounded-lg flex items-center gap-2"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleExportToExcel}
             >
               <FiDownload /> Exportar
             </motion.button>
+
             <motion.button
-              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2 text-white font-semibold"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
+              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center gap-2"
+              whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(0, 255, 140, 0.5)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={openModalCrear}
             >
               <FiPlusCircle /> Agregar Evento
@@ -417,26 +492,107 @@ const Eventos = () => {
         <motion.div
           className="grid gap-6"
           style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
-          variants={containerVariants}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+          }}
           initial="hidden"
           animate="visible"
           data-aos="fade-up"
-          data-aos-easing="linear"
-          data-aos-duration="1500"
         >
           <AnimatePresence>
             {filteredEventos.length > 0 ? (
-              filteredEventos.map((evento, index) => (
-                <EventoCard
-                  key={evento.id}
-                  evento={evento}
-                  index={index}
-                  cardVariants={cardVariants}
-                  openModalVer={openModalVer}
-                  openModalEditar={openModalEditar}
-                  handleDeleteEvento={handleDeleteEvento}
-                  handleRestoreEvento={handleRestoreEvento}
-                />
+              filteredEventos.map((evento) => (
+                <motion.div
+                  key={evento.idEvento}
+                  className="glass-card p-6 rounded-t-3xl rounded-br-3xl rounded-bl-xl shadow-md transition-all duration-300 hover:scale-[1.015]"
+                  variants={{
+                    hidden: { y: 20, opacity: 0 },
+                    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
+                    hover: { y: -5, boxShadow: "0 10px 25px rgba(0, 255, 140, 0.3)" }
+                  }}
+                  whileHover="hover"
+                  layout
+                >
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-white">{evento.nombreEvento}</h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${evento.estado === "activo" ? "bg-green-500" : "bg-red-500"
+                          }`}>
+                          {evento.estado === "activo" ? "Activo" : "Inactivo"}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 bg-blue-500 rounded-full"
+                          onClick={() => openModalVer(evento)}
+                        >
+                          <FiEye className="text-white" />
+                        </motion.button>
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 bg-yellow-500 rounded-full"
+                          onClick={() => openModalEditar(evento)}
+                        >
+                          <FiEdit className="text-white" />
+                        </motion.button>
+                        {evento.estado === "activo" ? (
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            className="p-2 bg-red-500 rounded-full"
+                            onClick={() => handleDeleteEvento(evento.idEvento, evento.nombreEvento)}
+                          >
+                            <FiTrash2 className="text-white" />
+                          </motion.button>
+                        ) : (
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            className="p-2 bg-green-500 rounded-full"
+                            onClick={() => handleRestoreEvento(evento.idEvento, evento.nombreEvento)}
+                          >
+                            <FiRefreshCcw className="text-white" />
+                          </motion.button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mb-4 rounded-lg overflow-hidden">
+                      {evento.foto ? (
+                        <img
+                          src={evento.foto}
+                          className="w-full h-48 object-cover rounded-lg"
+                          alt={evento.nombreEvento}
+                          onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300/333333/FFFFFF?text=Sin+Imagen"; }}
+                        />
+                      ) : (
+                        <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center">
+                          <span className="text-gray-400">Sin imagen</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-grow space-y-3">
+                      <div>
+                        <p className="text-sm text-gray-400">Género Musical</p>
+                        <p className="font-medium">{evento.generoMusical}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Ubicación</p>
+                        <p className="font-medium">{evento.ubicacion}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Fecha</p>
+                        <p className="font-medium">{evento.fecha}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Artistas</p>
+                        <p className="font-medium truncate">{evento.artistas}</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
               ))
             ) : (
               <motion.div
@@ -457,9 +613,11 @@ const Eventos = () => {
               onClose={closeModal}
               onChange={handleInputChange}
               onSave={handleAddEvento}
-              generosMusicales={generosMusicales}
               errors={errors}
               title="Agregar Evento"
+              previewFotoUrl={previewFoto}
+              generos={generosMusicales}
+              isEditing={false}
             />
           )}
 
@@ -469,17 +627,16 @@ const Eventos = () => {
               onClose={closeModal}
               onChange={handleInputChange}
               onSave={handleUpdateEvento}
-              generosMusicales={generosMusicales}
               errors={errors}
               title="Editar Evento"
+              previewFotoUrl={previewFoto}
+              generos={generosMusicales}
+              isEditing={true}
             />
           )}
 
-          {modalVer && (
-            <ModalVer
-              data={currentEvento}
-              onClose={closeModal}
-            />
+          {modalVer && currentEvento && (
+            <ModalVer data={currentEvento} onClose={closeModal} />
           )}
         </AnimatePresence>
       </div>
@@ -487,150 +644,49 @@ const Eventos = () => {
   );
 };
 
-// --- EventoCard Component ---
-const EventoCard = ({ evento, index, cardVariants, openModalVer, openModalEditar, handleDeleteEvento, handleRestoreEvento }) => {
-  return (
-    <motion.div
-      key={evento.id}
-      className="glass-card p-6 rounded-t-3xl rounded-br-3xl rounded-bl-xl shadow-md transition-all duration-300 hover:scale-[1.015] flex flex-col"
-      variants={cardVariants}
-      whileHover="hover"
-      layout
-      data-aos="fade-up"
-      data-aos-delay={index * 50}
-    >
-      <div className="flex flex-col h-full">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-xl font-bold text-white">{evento.nombreEvento}</h3>
-            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${evento.estado ? "bg-green-500" : "bg-red-500"}`}>
-              {evento.estado ? "Activo" : "Inactivo"}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="p-2 bg-blue-500 rounded-full hover:bg-blue-600 transition-colors"
-              onClick={() => openModalVer(evento)}
-              title="Ver detalles"
-            >
-              <FiEye className="text-white" />
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="p-2 bg-yellow-500 rounded-full hover:bg-yellow-600 transition-colors"
-              onClick={() => openModalEditar(evento)}
-              title="Editar evento"
-            >
-              <FiEdit className="text-white" />
-            </motion.button>
-            {evento.estado ? (
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                className="p-2 bg-red-500 rounded-full hover:bg-red-600 transition-colors"
-                onClick={() => handleDeleteEvento(evento)}
-                title="Desactivar evento"
-              >
-                <FiTrash2 className="text-white" />
-              </motion.button>
-            ) : (
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                className="p-2 bg-green-500 rounded-full hover:bg-green-600 transition-colors"
-                onClick={() => handleRestoreEvento(evento)}
-                title="Activar evento"
-              >
-                <FiRefreshCcw className="text-white" />
-              </motion.button>
-            )}
-          </div>
-        </div>
-
-        <div className="mb-4 rounded-lg overflow-hidden flex-shrink-0">
-          {evento.foto ? (
-            <img
-              src={typeof evento.foto === 'string' ? evento.foto : URL.createObjectURL(evento.foto)}
-              className="w-full h-48 object-cover rounded-lg"
-              alt={evento.nombreEvento}
-              onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300/333333/FFFFFF?text=Sin+Imagen"; }}
-            />
-          ) : (
-            <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center">
-              <span className="text-gray-400">Sin imagen</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex-grow space-y-3">
-          <div>
-            <p className="text-sm text-gray-400">Género Musical</p>
-            <p className="font-medium">{evento.generoMusical}</p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-400">Ubicación</p>
-            <p className="font-medium">{evento.ubicacion}</p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-400">Fecha</p>
-            <p className="font-medium">{evento.fecha}</p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-400">Artistas</p>
-            <p className="font-medium truncate">{evento.artistas}</p>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// --- ModalFormulario Component ---
-const ModalFormulario = ({ formData, onClose, onChange, onSave, generosMusicales, errors, title }) => {
-  const [previewFotoUrl, setPreviewFotoUrl] = useState(null);
-
-  useEffect(() => {
-    if (formData.foto instanceof File) {
-      const objectUrl = URL.createObjectURL(formData.foto);
-      setPreviewFotoUrl(objectUrl);
-      return () => URL.revokeObjectURL(objectUrl);
-    } else if (typeof formData.foto === 'string') {
-      setPreviewFotoUrl(formData.foto);
-    } else {
-      setPreviewFotoUrl(null);
-    }
-  }, [formData.foto]);
-
+const ModalFormulario = ({ formData, onClose, onChange, onSave, errors, title, previewFotoUrl, generos, isEditing }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
     >
-      <motion.div
-        initial={{ scale: 0.9, y: 50 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 50 }}
-        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-sm md:max-w-md lg:max-w-lg mx-auto my-8 border border-white border-opacity-20 relative"
-      >
-        <h2 className="text-3xl font-bold mb-6 text-white text-center">{title}</h2>
+      <div
+        className="fixed inset-0 bg-black bg-opacity-70"
+        onClick={onClose}
+      />
 
-        <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="relative glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white border-opacity-20"
+      >
+        <div className="sticky top-0 z-10 bg-gray-800 bg-opacity-90 p-4 border-b border-gray-700 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-white">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white focus:outline-none"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-6 custom-scrollbar" style={{ maxHeight: 'calc(90vh - 64px)' }}>
           <div className="mb-4 text-center">
-            <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-300">Imagen del Evento</label>
             {previewFotoUrl && (
               <img
                 src={previewFotoUrl}
                 alt="Vista previa"
-                className="w-32 h-32 rounded-lg object-cover mx-auto mb-4 border border-gray-600"
+                className="w-32 h-32 rounded-lg object-cover mx-auto mb-4"
               />
             )}
             <label
               htmlFor="foto"
-              className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition font-semibold"
+              className="inline-block bg-[#00FF8C] text-gray-900 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#39FF14] transition"
             >
               {previewFotoUrl ? "Cambiar Imagen" : "Subir Imagen"}
               <input
@@ -642,27 +698,29 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generosMusicales
                 accept="image/*"
               />
             </label>
+            {errors.foto && (
+              <p className="text-red-500 text-sm mt-1">{errors.foto}</p>
+            )}
           </div>
 
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { label: "Nombre del Evento", name: "nombreEvento", type: "text" },
-              { label: "Ubicación", name: "ubicacion", type: "text" },
+              { label: "Nombre del Evento", name: "nombreEvento", type: "text", fullWidth: true },
+              { label: "Ubicación", name: "ubicacion", type: "text", fullWidth: true },
               { label: "Fecha", name: "fecha", type: "date" },
               { label: "Contacto", name: "contacto", type: "text" },
               { label: "Capacidad", name: "capacidad", type: "number" },
-              { label: "Artistas", name: "artistas", type: "text" },
+              { label: "Artistas", name: "artistas", type: "text", fullWidth: true },
             ].map((field) => (
-              <div key={field.name}>
+              <div key={field.name} className={field.fullWidth ? 'md:col-span-2' : ''}>
                 <label className="block text-sm font-semibold mb-1 text-gray-300">{field.label}</label>
                 <input
                   type={field.type}
                   name={field.name}
                   value={formData[field.name]}
                   onChange={onChange}
-                  className={`w-full p-3 bg-gray-800 border ${
-                    errors[field.name] ? "border-red-500" : "border-gray-700"
-                  } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]`}
+                  className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors[field.name] ? "border-red-500" : ""
+                    }`}
                 />
                 {errors[field.name] && (
                   <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>
@@ -670,60 +728,69 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generosMusicales
               </div>
             ))}
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-semibold mb-1 text-gray-300">Género Musical</label>
               <select
                 name="generoMusical"
                 value={formData.generoMusical}
                 onChange={onChange}
-                className={`w-full p-3 bg-gray-800 border ${
-                  errors.generoMusical ? "border-red-500" : "border-gray-700"
-                } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]`}
+                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors.generoMusical ? "border-red-500" : ""
+                  }`}
               >
                 <option value="">Selecciona un género</option>
-                {generosMusicales.map((genero, idx) => (
-                  <option key={idx} value={genero}>
-                    {genero}
+                {generos.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
                   </option>
                 ))}
               </select>
-              {errors.generoMusical && (
-                <p className="text-red-500 text-sm mt-1">{errors.generoMusical}</p>
-              )}
+              {errors.generoMusical && <p className="text-red-500 text-sm mt-1">{errors.generoMusical}</p>}
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-semibold mb-1 text-gray-300">Descripción</label>
               <textarea
                 name="descripcion"
                 value={formData.descripcion}
                 onChange={onChange}
                 rows="3"
-                className={`w-full p-3 bg-gray-800 border ${
-                  errors.descripcion ? "border-red-500" : "border-gray-700"
-                } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]`}
+                className={`w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C] ${errors.descripcion ? "border-red-500" : ""
+                  }`}
               ></textarea>
-              {errors.descripcion && (
-                <p className="text-red-500 text-sm mt-1">{errors.descripcion}</p>
-              )}
+              {errors.descripcion && <p className="text-red-500 text-sm mt-1">{errors.descripcion}</p>}
             </div>
+
+            {isEditing && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
+                <select
+                  name="estado"
+                  value={formData.estado}
+                  onChange={onChange}
+                  className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00FF8C]"
+                >
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 mt-8">
+        <div className="sticky bottom-0 bg-gray-800 bg-opacity-90 p-4 border-t border-gray-700 flex justify-end space-x-3">
           <motion.button
             onClick={onClose}
-            className="bg-gradient-to-r from-gray-700 to-gray-800 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:from-gray-600 hover:to-gray-700 transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
             Cancelar
           </motion.button>
           <motion.button
             onClick={onSave}
-            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg hover:from-[#39FF14] hover:to-[#00FF8C] transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="px-6 py-2 bg-[#00FF8C] text-gray-900 rounded-lg hover:bg-[#39FF14] transition font-semibold"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
             Guardar
           </motion.button>
@@ -733,73 +800,98 @@ const ModalFormulario = ({ formData, onClose, onChange, onSave, generosMusicales
   );
 };
 
-// --- ModalVer Component ---
 const ModalVer = ({ data, onClose }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
     >
-      <motion.div
-        initial={{ scale: 0.9, y: 50 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 50 }}
-        className="glass-card p-8 rounded-2xl shadow-2xl w-full max-w-sm md:max-w-md mx-auto my-8 border border-white border-opacity-20 relative"
-      >
-        <h2 className="text-3xl font-bold mb-6 text-white text-center">Detalles del Evento</h2>
+      <div
+        className="fixed inset-0 bg-black bg-opacity-70"
+        onClick={onClose}
+      />
 
-        <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-          <div className="space-y-4">
-            <div className="text-center mb-6">
-              {data.foto ? (
-                <img
-                  src={typeof data.foto === 'string' ? data.foto : URL.createObjectURL(data.foto)}
-                  alt="Evento"
-                  className="w-40 h-40 rounded-lg object-cover mx-auto border border-gray-600 shadow-md"
-                  onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300/333333/FFFFFF?text=Sin+Imagen"; }}
-                />
-              ) : (
-                <div className="w-40 h-40 bg-gray-700 rounded-lg flex items-center justify-center mx-auto border border-gray-600 shadow-md">
-                  <span className="text-gray-400 text-lg">Sin foto</span>
-                </div>
-              )}
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="relative glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white border-opacity-20"
+      >
+        <div className="sticky top-0 z-10 bg-gray-800 bg-opacity-90 p-4 border-b border-gray-700 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-white">Detalles del Evento</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white focus:outline-none"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-6 custom-scrollbar" style={{ maxHeight: 'calc(90vh - 64px)' }}>
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-shrink-0">
+              <div className="w-48 h-48 rounded-lg overflow-hidden bg-gray-700 flex items-center justify-center">
+                {data.foto ? (
+                  <img
+                    src={data.foto}
+                    alt="Evento"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300/333333/FFFFFF?text=Sin+Imagen"; }}
+                  />
+                ) : (
+                  <span className="text-gray-400">Sin imagen</span>
+                )}
+              </div>
             </div>
 
-            {[
-              { label: "Nombre del Evento", value: data.nombreEvento },
-              { label: "Género Musical", value: data.generoMusical },
-              { label: "Ubicación", value: data.ubicacion },
-              { label: "Fecha", value: data.fecha },
-              { label: "Contacto", value: data.contacto },
-              { label: "Capacidad", value: data.capacidad },
-              { label: "Artistas", value: data.artistas },
-              { label: "Descripción", value: data.descripcion },
-            ].map((item) => (
-              <div key={item.label} className="flex flex-col">
-                <label className="block text-sm font-semibold mb-1 text-gray-300">{item.label}</label>
-                <p className="text-lg text-white bg-gray-800 p-3 rounded-lg border border-gray-700">{item.value}</p>
+            <div className="flex-grow">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: "ID Evento", value: data.idEvento },
+                  { label: "Nombre del Evento", value: data.nombreEvento },
+                  { label: "Género Musical", value: data.generoMusical },
+                  { label: "Ubicación", value: data.ubicacion },
+                  { label: "Fecha", value: data.fecha },
+                  { label: "Contacto", value: data.contacto },
+                  { label: "Capacidad", value: data.capacidad },
+                  { label: "Artistas", value: data.artistas },
+                ].map((item) => (
+                  <div key={item.label}>
+                    <label className="block text-sm font-semibold text-gray-400">{item.label}</label>
+                    <p className="text-lg text-white mt-1">{item.value || 'N/A'}</p>
+                  </div>
+                ))}
               </div>
-            ))}
 
-            <div className="flex flex-col">
-              <label className="block text-sm font-semibold mb-1 text-gray-300">Estado</label>
-              <span className={`px-4 py-2 rounded-full text-base font-bold w-fit ${
-                data.estado ? "bg-green-600 text-white" : "bg-red-600 text-white"
-              }`}>
-                {data.estado ? "Activo" : "Inactivo"}
-              </span>
+              <div className="mt-6">
+                <label className="block text-sm font-semibold text-gray-400">Descripción</label>
+                <p className="text-white bg-gray-800 p-3 rounded-lg border border-gray-700 mt-1">
+                  {data.descripcion || 'N/A'}
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <label className="block text-sm font-semibold text-gray-400">Estado</label>
+                <span
+                  className={`inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold ${data.estado === "activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                    }`}
+                >
+                  {data.estado === "activo" ? "Activo" : "Inactivo"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end mt-8">
+        <div className="sticky bottom-0 bg-gray-800 bg-opacity-90 p-4 border-t border-gray-700 flex justify-end">
           <motion.button
             onClick={onClose}
-            className="bg-gradient-to-r from-[#00FF8C] to-[#39FF14] text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg hover:from-[#39FF14] hover:to-[#00FF8C] transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="px-6 py-2 bg-[#00FF8C] text-gray-900 rounded-lg hover:bg-[#39FF14] transition font-semibold"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
             Cerrar
           </motion.button>
@@ -807,32 +899,6 @@ const ModalVer = ({ data, onClose }) => {
       </motion.div>
     </motion.div>
   );
-};
-
-// PropTypes for type checking
-EventoCard.propTypes = {
-  evento: PropTypes.object.isRequired,
-  index: PropTypes.number.isRequired,
-  cardVariants: PropTypes.object.isRequired,
-  openModalVer: PropTypes.func.isRequired,
-  openModalEditar: PropTypes.func.isRequired,
-  handleDeleteEvento: PropTypes.func.isRequired,
-  handleRestoreEvento: PropTypes.func.isRequired,
-};
-
-ModalFormulario.propTypes = {
-  formData: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onChange: PropTypes.func.isRequired,
-  onSave: PropTypes.func.isRequired,
-  generosMusicales: PropTypes.array.isRequired,
-  errors: PropTypes.object.isRequired,
-  title: PropTypes.string.isRequired,
-};
-
-ModalVer.propTypes = {
-  data: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
 };
 
 export default Eventos;
